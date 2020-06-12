@@ -16,19 +16,8 @@
 
 		SubShader
 		{
-			Tags
-			{
-				"Queue" = "Transparent"
-				"IgnoreProjector" = "True"
-				"RenderType" = "Transparent"
-				"PreviewType" = "Plane"
-				"CanUseSpriteAtlas" = "True"
-			}
 
-			Cull Off
-			Lighting Off
-			ZWrite Off
-			Blend One OneMinusSrcAlpha
+		Cull Off ZWrite Off ZTest Always
 
 			Pass
 			{
@@ -95,8 +84,9 @@
 
 					float4 color = sum/weightSum;
 					color = lerp(midColor, color, _Fade);
+
+					color.rgb *= midColor.a;
 					color.a = midColor.a;
-					color.a = 1;
 
 					return color;
 				}
@@ -104,7 +94,6 @@
 				fixed4 frag(v2f IN) : SV_Target
 				{
 					fixed4 c = SampleSpriteTexture(IN.texcoord) * IN.color;
-					c.rgb *= c.a;
 					return c;
 				}
 			ENDCG

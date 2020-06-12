@@ -10,24 +10,30 @@ public class SceneManager : MonoBehaviour
     public string[] envNames;
     public GameObject[] grounds;
     public Text envTitle;
+    public Material doSky, noSky, noTexture;
 
     [Header("Setups")]
     public int setupNumber = 6;
     public Material[] matBySetup;
     public GameObject[] camBySetup;
     public GameObject[] optionBySetup;
-    public bool[] groundBySetup;
     public Button[] SetupButtons;
 
     [Header("Additional Options")]
     public Light sceneLight;
 
     private int curEnv, curSetup;
+    private bool drawTextures;
+    public static bool maskedPost;
     private Dictionary<MeshRenderer, Material[]> allMaterials;
+    public static SceneManager instance;
+
+    public List<GameObject> switchOn;
 
     // Start is called before the first frame update
     void Awake()
     {
+        instance = this;
         allMaterials = new Dictionary<MeshRenderer, Material[]>();
         foreach (GameObject g in environments) { g.SetActive(true); }
         MeshRenderer[] meshies = FindObjectsOfType<MeshRenderer>();
@@ -42,10 +48,63 @@ public class SceneManager : MonoBehaviour
         }
         curEnv = 0;
         curSetup = 0;
+        drawTextures = true;
         ChangeEnvironment(0);
         SetSetup(0);
         ToggleShadows(true);
         ToggleOrthographic(false);
+        ToggleMaskedPost(false);
+        foreach (GameObject g in switchOn)
+        {
+            g.SetActive(true);
+        }
+    }
+
+    public void ToggleSky(bool value)
+    {
+        RenderSettings.skybox = value ? doSky : noSky;
+    }
+
+    public void ToggleGround(bool value)
+    {
+        foreach (GameObject g in grounds)
+        {
+            g.SetActive(value);
+        }
+    }
+
+    public void ToggleTextures(bool value)
+    {
+        drawTextures = value;
+        SetGlobalMaterials();
+    }
+
+    public void ToggleMaskedPost(bool value)
+    {
+        maskedPost = value;
+        foreach (GameObject c in camBySetup)
+        {
+            if (!value)
+            {
+                string[] masknames = { "Default", "NoEffect" };
+                c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
+                c.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
+            }
+            else
+            {
+                string[] masknames = { "Default" };
+                c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
+                c.GetComponent<Camera>().clearFlags = CameraClearFlags.Color;
+            }
+        }
+        if (!value)
+        {
+            foreach (KeyValuePair<MeshRenderer, Material[]> pair in allMaterials)
+            {
+                pair.Key.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+            }
+        }
+        SetGlobalMaterials();
     }
 
     public void SetSetup(int value)
@@ -57,10 +116,6 @@ public class SceneManager : MonoBehaviour
             camBySetup[i].SetActive(i == curSetup);
             if (optionBySetup[i] != null) { optionBySetup[i].SetActive(i == curSetup); }
         }
-        foreach (GameObject g in grounds)
-        {
-            g.SetActive(groundBySetup[curSetup]);
-        }
         SetGlobalMaterials();
     }
 
@@ -68,9 +123,23 @@ public class SceneManager : MonoBehaviour
     {
         foreach (KeyValuePair<MeshRenderer,Material[]> pair in allMaterials)
         {
-            if (matBySetup[curSetup] == null)
+            bool baseSetup = matBySetup[curSetup] == null;
+            if (maskedPost) { baseSetup = baseSetup || pair.Key.gameObject.layer == LayerMask.NameToLayer("NoEffect"); }
+            if (baseSetup)
             {
-                pair.Key.sharedMaterials = pair.Value;
+                if (drawTextures)
+                {
+                    pair.Key.sharedMaterials = pair.Value;
+                }
+                else
+                {
+                    Material[] m = new Material[pair.Value.Length];
+                    for (int i = 0; i < m.Length; i++)
+                    {
+                        m[i] = noTexture;
+                    }
+                    pair.Key.sharedMaterials = m;
+                }
             }
             else
             {

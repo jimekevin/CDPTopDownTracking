@@ -55,7 +55,10 @@
 
 				depth *= _DistanceFactor;
 
-				return depth;
+				fixed4 result = depth;
+				result.a = 1;
+
+				return result;
             }
             ENDCG
         }

@@ -34,7 +34,6 @@ public class CameraManager : MonoBehaviour
         if (inp != 0)
         {
             Vector3 lp = zoomer.localPosition;
-            Debug.Log(inp * Time.deltaTime * zoomSpeed);
             lp.z += inp * Time.deltaTime * zoomSpeed;
             lp.z = Mathf.Clamp(lp.z, -50, -10);
             foreach (Camera c in cams)

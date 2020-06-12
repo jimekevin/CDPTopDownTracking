@@ -52,10 +52,10 @@
 
 				if (col.r >= _Treshold || col.g >= _Treshold || col.b >= _Treshold)
 				{
-					return col * (1 - _Fade) + _FrontColor * _Fade;
+					return fixed4((col * (1 - _Fade) + _FrontColor * _Fade).rgb, col.a);
 				}
 
-				return _BackColor;
+				return fixed4(_BackColor.rgb, col.a);
             }
             ENDCG
         }

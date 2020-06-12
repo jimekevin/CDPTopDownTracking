@@ -40,8 +40,9 @@
             sampler2D _MainTex;
 			sampler2D _CameraDepthNormalsTexture;
 
-            fixed4 frag (v2f i) : SV_Target
-            {
+			fixed4 frag(v2f i) : SV_Target
+			{
+				half4 color = tex2D(_MainTex, i.uv);
 				half3 normal;
 				float depth;
 
@@ -49,8 +50,8 @@
 				//normal = mul((float3x3)_CamToWorld, normal);
 				
 				float c = (normal.x + normal.y + normal.z) / 2;
-
-				return half4(c,c,c, 1);
+				if (color.a == 0) { normal = half3(0, 0, 0); }
+				return fixed4(normal.rgb, color.a);
             }
             ENDCG
         }

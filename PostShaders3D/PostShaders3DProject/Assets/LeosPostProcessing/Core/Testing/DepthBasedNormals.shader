@@ -60,7 +60,7 @@
 				float3 dir = float3(dx, dy, 1);
 				float3 normal = normalize(dir);
 
-				return half4(dir.xyz, 1);
+				return half4(dir.xyz, col.a);
             }
             ENDCG
         }
