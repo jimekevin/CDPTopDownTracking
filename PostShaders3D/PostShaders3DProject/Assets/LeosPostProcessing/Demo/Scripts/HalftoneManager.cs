@@ -47,8 +47,14 @@ public class HalftoneManager : MonoBehaviour
         mat.SetFloat("_Intensity", value);
     }
 
+    public void SetShear(float value)
+    {
+        mat.SetFloat("_ShearFactor", value);
+    }
+
     public void SetInvert(bool value)
     {
+        if (invertEffect == null) { return; }
         invertEffect.enabled = value;
     }
 
@@ -58,6 +64,7 @@ public class HalftoneManager : MonoBehaviour
         SetRasterSize(0.01f);
         SetSoftness(0.4f);
         SetIntensity(0.6f);
+        SetShear(0.5f);
         SetInvert(false);
     }
 }

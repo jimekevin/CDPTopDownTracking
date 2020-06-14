@@ -13,6 +13,7 @@
 		_Spread("Intensity Spread", Range(0,2)) = 1
 		_SoftFactor("Soft Factor", Range(0.01, 1)) = 0.1
 		_Aspect("Aspect Ratio", Float) = 1.78
+        _ShearFactor("Shear Factor", Float) = 1
     }
     SubShader
     {
@@ -47,9 +48,9 @@
                 return o;
             }
 
-			sampler2D _MainTex, _RasterTex;
+			sampler2D _MainTex, _RasterTex, _CameraDepthNormalsTexture;
 			half4 _BrightColor;
-			float _Aspect, _RasterSize, _ColorFade, _Mid, _Spread, _SoftFactor, _LowTreshold, _HighTreshold;
+			float _Aspect, _RasterSize, _ColorFade, _Mid, _Spread, _SoftFactor, _LowTreshold, _HighTreshold, _ShearFactor;
 
             fixed4 frag (v2f i) : SV_Target
             {
@@ -61,8 +62,13 @@
 				//intensity = (intensity - 0.5 + _Mid) * _Spread;
 				//intensity = saturate(intensity);
 				
-				fixed4 result = fixed4(0, 0, 0, 0);
-				float2 uv = float2(fmod(i.uv.x, _RasterSize) / _RasterSize, fmod(i.uv.y, _RasterSize * _Aspect) / (_RasterSize * _Aspect));
+                fixed3 normal = normalize(tex2D(_CameraDepthNormalsTexture, i.uv).xyz);
+                float2 shear = (normal.xy - float2(0.5, 0.5)) * _ShearFactor;
+                fixed4 result = fixed4(0, 0, 0, 0);
+                float2 uv = i.uv;
+                float2x2 shearMatrix = float2x2(1, shear.x, shear.y, 1);
+                uv = mul(uv, shearMatrix);
+                uv = float2(fmod(uv.x, _RasterSize) / _RasterSize, fmod(uv.y, _RasterSize * _Aspect) / (_RasterSize * _Aspect));
 				float rasterIntensity = tex2D(_RasterTex, uv).r;
 				float factor = 0;
 

@@ -1,4 +1,4 @@
-﻿Shader "Custom/Geometry/WireframeQuad"
+﻿Shader "Custom/WireframeMulti"
 {
 	Properties
 	{

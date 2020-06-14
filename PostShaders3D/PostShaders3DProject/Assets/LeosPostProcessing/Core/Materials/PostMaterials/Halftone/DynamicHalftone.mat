@@ -56,7 +56,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _RasterTex:
-        m_Texture: {fileID: 2800000, guid: b30d98cf7971c044295af1c2789f3a10, type: 3}
+        m_Texture: {fileID: 2800000, guid: 2eaa567a73058e04f8e2b51063996483, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
@@ -80,6 +80,7 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _RasterSize: 0.01
+    - _ShearFactor: 0.5
     - _SmoothnessTextureChannel: 0
     - _SoftFactor: 0.4
     - _SpecularHighlights: 1
