@@ -9,9 +9,10 @@ public class WireframeManager : MonoBehaviour
     private void Start()
     {
         DrawDiagonals(false);
-        DrawTransparent(true);
+        DrawTransparent(false);
         DrawBackfaces(true);
         DrawDotted(true);
+        SetNormalTreshold(0);
     }
 
     public void DrawDiagonals(bool value)
@@ -32,5 +33,10 @@ public class WireframeManager : MonoBehaviour
     public void DrawDotted(bool value)
     {
         mat.SetInt("_BacklineDotted", value ? 1 : 0);
+    }
+
+    public void SetNormalTreshold(float value)
+    {
+        mat.SetFloat("_NormalTreshold", value);
     }
 }

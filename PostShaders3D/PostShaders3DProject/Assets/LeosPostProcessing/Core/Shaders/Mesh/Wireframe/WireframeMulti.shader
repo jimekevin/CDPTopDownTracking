@@ -14,6 +14,7 @@
 		_Transparent("Transparent (0 or 1)", Range(0, 1)) = 0
 		_Backfaces("Backfaces (0 or 1)", Range(0, 1)) = 0
 		_BacklineDotted("Backline Dotted (0 or 1)", Range(0, 1)) = 0
+		_NormalTreshold("Normal Y Treshold", Range(0, 1)) = 0
 	}
 		SubShader
 		{
@@ -31,16 +32,19 @@
 
 			struct v2g {
 				float4 worldPos : SV_POSITION;
+				float3 normal : NORMAL;
 			};
 
 			struct g2f {
 				float4 pos : SV_POSITION;
 				float3 bary : TEXCOORD0;
+				half3 worldNormal : NORMAL;
 			};
 
 			v2g vert(appdata_base v) {
 				v2g o;
 				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
+				o.normal = UnityObjectToWorldNormal(v.normal);
 				return o;
 			}
 
@@ -65,6 +69,7 @@
 				}
 
 				g2f o;
+				o.worldNormal = normalize((IN[0].normal + IN[1].normal + IN[2].normal) / 3.0);
 				o.pos = mul(UNITY_MATRIX_VP, IN[0].worldPos);
 				o.bary = float3(1., 0., 0.) + param;
 				triStream.Append(o);
@@ -79,6 +84,7 @@
 			float _BacklineWidth;
 			float _BacklineDistance;
 			float _BacklineFactor;
+			float _NormalTreshold;
 			fixed4 _BackColor;
 			int _Backfaces;
 			int _BacklineDotted;
@@ -90,9 +96,10 @@
 				}
 
 				bool any = 0;
+				bool nrm = abs(i.worldNormal.y) >= _NormalTreshold;
 				if (i.bary.x < _BacklineWidth)
 				{
-					if (i.bary.z % _BacklineDistance > _BacklineFactor* _BacklineDistance)
+					if (i.bary.z % _BacklineDistance > _BacklineFactor* _BacklineDistance && nrm)
 					{
 						return _BackColor;
 					}
@@ -100,7 +107,7 @@
 				}
 				if (i.bary.y < _BacklineWidth)
 				{
-					if (i.bary.x % _BacklineDistance < _BacklineFactor * _BacklineDistance)
+					if (i.bary.x % _BacklineDistance < _BacklineFactor * _BacklineDistance && nrm)
 					{
 						return _BackColor;
 					}
@@ -108,13 +115,13 @@
 				}
 				if (i.bary.z < _BacklineWidth)
 				{
-					if (i.bary.y % _BacklineDistance < _BacklineFactor * _BacklineDistance)
+					if (i.bary.y % _BacklineDistance < _BacklineFactor * _BacklineDistance && nrm)
 					{
 						return _BackColor;
 					}
 					any = 1;
 				}
-				if (any && !_BacklineDotted)
+				if (any && !_BacklineDotted && nrm)
 				{
 					return _BackColor;
 				}
@@ -138,16 +145,19 @@
 
 				struct v2g {
 					float4 worldPos : SV_POSITION;
+					float3 normal : NORMAL;
 				};
 
 				struct g2f {
 					float4 pos : SV_POSITION;
 					float3 bary : TEXCOORD0;
+					half3 worldNormal : NORMAL;
 				};
 
 				v2g vert(appdata_base v) {
 					v2g o;
 					o.worldPos = mul(unity_ObjectToWorld, v.vertex);
+					o.normal = UnityObjectToWorldNormal(v.normal);
 					return o;
 				}
 
@@ -172,6 +182,7 @@
 					}
 
 					g2f o;
+					o.worldNormal = normalize((IN[0].normal + IN[1].normal + IN[2].normal) / 3.0);
 					o.pos = mul(UNITY_MATRIX_VP, IN[0].worldPos);
 					o.bary = float3(1., 0., 0.) + param;
 					triStream.Append(o);
@@ -186,15 +197,26 @@
 				float _FrontlineWidth;
 				fixed4 _FrontColor, _TintColor;
 				int _Transparent;
+				float _NormalTreshold;
 
 				fixed4 frag(g2f i) : SV_Target {
-				if (!any(bool3(i.bary.x <= _FrontlineWidth, i.bary.y <= _FrontlineWidth, i.bary.z <= _FrontlineWidth)))
-				if (_Transparent) {
-					discard;
-				}
-				else {
-					return _TintColor;
-				}
+					if (!any(bool3(i.bary.x <= _FrontlineWidth, i.bary.y <= _FrontlineWidth, i.bary.z <= _FrontlineWidth)))
+					{
+						if (_Transparent) {
+							discard;
+						}
+						else {
+							return _TintColor;
+						}
+					}
+					if (abs(i.worldNormal.y) < _NormalTreshold) {
+						if (_Transparent) {
+							discard;
+						}
+						else {
+							return _TintColor;
+						}
+					}
 
 					return _FrontColor;
 				}
