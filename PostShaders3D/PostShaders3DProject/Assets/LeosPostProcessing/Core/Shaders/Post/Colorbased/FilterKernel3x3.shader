@@ -1,4 +1,4 @@
-﻿Shader "LeosPostShaders/FilterMatrixShader"
+﻿Shader "LeosPostShaders/FilterKernel3x3"
 {
 	Properties
 	{
