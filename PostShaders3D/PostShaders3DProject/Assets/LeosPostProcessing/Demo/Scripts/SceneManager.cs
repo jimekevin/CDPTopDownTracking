@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 public class SceneManager : MonoBehaviour
 {
@@ -10,7 +11,7 @@ public class SceneManager : MonoBehaviour
     public string[] envNames;
     public GameObject[] grounds;
     public Text envTitle;
-    public Material doSky, noSky, noTexture;
+    public Material doSky, noSky, noTexture, noTextureGround;
 
     [Header("Setups")]
     public int setupNumber = 6;
@@ -53,16 +54,20 @@ public class SceneManager : MonoBehaviour
         SetSetup(0);
         ToggleShadows(true);
         ToggleOrthographic(false);
-        ToggleMaskedPost(false);
         foreach (GameObject g in switchOn)
         {
             g.SetActive(true);
         }
+        ToggleMaskedPost(false);
     }
 
     public void ToggleSky(bool value)
     {
         RenderSettings.skybox = value ? doSky : noSky;
+        foreach (GameObject c in camBySetup)
+        {
+            c.GetComponent<Camera>().clearFlags = value ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+        }
     }
 
     public void ToggleGround(bool value)
@@ -82,6 +87,7 @@ public class SceneManager : MonoBehaviour
     public void ToggleMaskedPost(bool value)
     {
         maskedPost = value;
+        switchOn[0].SetActive(maskedPost);
         foreach (GameObject c in camBySetup)
         {
             if (!value)
@@ -94,7 +100,7 @@ public class SceneManager : MonoBehaviour
             {
                 string[] masknames = { "Default" };
                 c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
-                c.GetComponent<Camera>().clearFlags = CameraClearFlags.Color;
+                c.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
             }
         }
         if (!value)
@@ -136,7 +142,14 @@ public class SceneManager : MonoBehaviour
                     Material[] m = new Material[pair.Value.Length];
                     for (int i = 0; i < m.Length; i++)
                     {
-                        m[i] = noTexture;
+                        if (grounds.Contains(pair.Key.gameObject))
+                        {
+                            m[i] = noTextureGround;
+                        }
+                        else
+                        {
+                            m[i] = noTexture;
+                        }
                     }
                     pair.Key.sharedMaterials = m;
                 }

@@ -5,9 +5,10 @@ using UnityEngine;
 public class CameraManager : MonoBehaviour
 {
     public float rotationSpeed = 200, zoomSpeed;
+    public static bool canMove;
     public Transform zoomer;
     public static Camera[] cams;
-    private Vector3 rot;
+    public Vector3 rot;
 
     void Awake()
     {
@@ -30,6 +31,7 @@ public class CameraManager : MonoBehaviour
         rot.x = Mathf.Clamp(rot.x, 0, 85);
         transform.rotation = Quaternion.Euler(rot);
 
+        if (!canMove) { return; }
         inp = Input.GetAxis("Mouse ScrollWheel");
         if (inp != 0)
         {

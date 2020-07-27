@@ -5,7 +5,7 @@
 		_MainTex("Main Texture", 2D) = "white" {}
 		_Color("Tint", Color) = (1,1,1,1)
 		_Fade("Fade", Range(0.0,1)) = 1
-		_Aspect("Aspect", float) = 1.7777777
+		_Aspect("Aspect", float) = 0.5624999
 		_Distance("Distance", Range(0.0,0.1)) = 0.01
 		_Median("Median", Float) = 1
 		_Row0("Row0", Vector) = (0,1,0,0)
@@ -67,15 +67,15 @@
 				{
 					fixed4 midColor = tex2D(_MainTex, uv);
 
-					fixed4 c00 = tex2D(_MainTex, uv + float2(-_Aspect,-1) * _Distance) * _Row0.x;
-					fixed4 c01 = tex2D(_MainTex, uv + float2(0, -1) * _Distance) * _Row0.y;
-					fixed4 c02 = tex2D(_MainTex, uv + float2(_Aspect, -1) * _Distance) * _Row0.z;
-					fixed4 c10 = tex2D(_MainTex, uv + float2(-_Aspect, 0) * _Distance) * _Row1.x;
+					fixed4 c00 = tex2D(_MainTex, uv + float2(-1, -1 * _Aspect) * _Distance) * _Row0.x;
+					fixed4 c01 = tex2D(_MainTex, uv + float2(0, -1 * _Aspect) * _Distance) * _Row0.y;
+					fixed4 c02 = tex2D(_MainTex, uv + float2(1, -1 * _Aspect) * _Distance) * _Row0.z;
+					fixed4 c10 = tex2D(_MainTex, uv + float2(-1, 0 * _Aspect) * _Distance) * _Row1.x;
 					fixed4 c11 = midColor * _Row1.y;
-					fixed4 c12 = tex2D(_MainTex, uv + float2(_Aspect, 0) * _Distance) * _Row1.z;
-					fixed4 c20 = tex2D(_MainTex, uv + float2(-_Aspect, 1) * _Distance) * _Row2.x;
-					fixed4 c21 = tex2D(_MainTex, uv + float2(0, 1) * _Distance) * _Row2.y;
-					fixed4 c22 = tex2D(_MainTex, uv + float2(_Aspect, 1) * _Distance) * _Row2.z;
+					fixed4 c12 = tex2D(_MainTex, uv + float2(1, 0 * _Aspect) * _Distance) * _Row1.z;
+					fixed4 c20 = tex2D(_MainTex, uv + float2(-1, 1 * _Aspect) * _Distance) * _Row2.x;
+					fixed4 c21 = tex2D(_MainTex, uv + float2(0, 1 * _Aspect) * _Distance) * _Row2.y;
+					fixed4 c22 = tex2D(_MainTex, uv + float2(1, 1 * _Aspect) * _Distance) * _Row2.z;
 
 					float4 sum = c00 + c01 + c02 + c10 + c11 + c12 + c20 + c21 + c22;
 					//float weightSum = _Row0.x + _Row0.y + _Row0.z + _Row1.x + _Row1.y + _Row1.z + _Row2.x + _Row2.y + _Row2.z;
@@ -83,6 +83,7 @@
 					if (!weightSum) { weightSum = 1; }
 
 					float4 color = sum/weightSum;
+					if (!_Median) { color *= midColor; }
 					color = lerp(midColor, color, _Fade);
 
 					color.rgb *= midColor.a;

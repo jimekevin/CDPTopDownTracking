@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class SelectionField : MonoBehaviour, IPointerDownHandler
+public class SelectionField : MonoBehaviour, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public Camera cam;
 
@@ -13,6 +13,16 @@ public class SelectionField : MonoBehaviour, IPointerDownHandler
         {
             StartCoroutine(selectionRoutine());
         }
+    }
+
+    public void OnPointerEnter(PointerEventData data)
+    {
+        CameraManager.canMove = true;
+    }
+
+    public void OnPointerExit(PointerEventData data)
+    {
+        CameraManager.canMove = false;
     }
 
     IEnumerator selectionRoutine()

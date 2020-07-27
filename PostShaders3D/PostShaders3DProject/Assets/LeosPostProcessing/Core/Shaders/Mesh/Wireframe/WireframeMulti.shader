@@ -1,4 +1,4 @@
-﻿Shader "Custom/WireframeMulti"
+﻿Shader "LeosPostShaders/WireframeMulti"
 {
 	Properties
 	{
