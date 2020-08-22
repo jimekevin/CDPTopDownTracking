@@ -11,7 +11,7 @@ public class SceneManager : MonoBehaviour
     public string[] envNames;
     public GameObject[] grounds;
     public Text envTitle;
-    public Material doSky, noSky, noTexture, noTextureGround;
+    public Material doSky, noSky, noTexture, noTextureGround, wireframe;
 
     [Header("Setups")]
     public int setupNumber = 6;
@@ -107,7 +107,10 @@ public class SceneManager : MonoBehaviour
         {
             foreach (KeyValuePair<MeshRenderer, Material[]> pair in allMaterials)
             {
-                pair.Key.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+                if (pair.Key.gameObject.layer != LayerMask.NameToLayer("Wireframe"))
+                {
+                    pair.Key.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+                }
             }
         }
         SetGlobalMaterials();
@@ -130,38 +133,51 @@ public class SceneManager : MonoBehaviour
         foreach (KeyValuePair<MeshRenderer,Material[]> pair in allMaterials)
         {
             bool baseSetup = matBySetup[curSetup] == null;
-            if (maskedPost) { baseSetup = baseSetup || pair.Key.gameObject.layer == LayerMask.NameToLayer("NoEffect"); }
-            if (baseSetup)
+            if (LayerMask.LayerToName(pair.Key.gameObject.layer) == "Wireframe")
             {
-                if (drawTextures)
+                Debug.Log(pair.Key.gameObject.name);
+                Material[] m = new Material[pair.Value.Length];
+                for (int i = 0; i < m.Length; i++)
                 {
-                    pair.Key.sharedMaterials = pair.Value;
+                    m[i] = wireframe;
+                }
+                pair.Key.sharedMaterials = m;
+            }
+            else
+            {
+                if (maskedPost) { baseSetup = baseSetup || pair.Key.gameObject.layer == LayerMask.NameToLayer("NoEffect"); }
+                if (baseSetup)
+                {
+                    if (drawTextures)
+                    {
+                        pair.Key.sharedMaterials = pair.Value;
+                    }
+                    else
+                    {
+                        Material[] m = new Material[pair.Value.Length];
+                        for (int i = 0; i < m.Length; i++)
+                        {
+                            if (grounds.Contains(pair.Key.gameObject))
+                            {
+                                m[i] = noTextureGround;
+                            }
+                            else
+                            {
+                                m[i] = noTexture;
+                            }
+                        }
+                        pair.Key.sharedMaterials = m;
+                    }
                 }
                 else
                 {
                     Material[] m = new Material[pair.Value.Length];
                     for (int i = 0; i < m.Length; i++)
                     {
-                        if (grounds.Contains(pair.Key.gameObject))
-                        {
-                            m[i] = noTextureGround;
-                        }
-                        else
-                        {
-                            m[i] = noTexture;
-                        }
+                        m[i] = matBySetup[curSetup];
                     }
                     pair.Key.sharedMaterials = m;
                 }
-            }
-            else
-            {
-                Material[] m = new Material[pair.Value.Length];
-                for (int i = 0; i < m.Length; i++)
-                {
-                    m[i] = matBySetup[curSetup];
-                }
-                pair.Key.sharedMaterials = m;
             }
         }
     }

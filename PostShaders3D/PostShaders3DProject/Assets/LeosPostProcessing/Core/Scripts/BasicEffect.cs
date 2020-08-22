@@ -25,27 +25,30 @@ public class BasicEffect : MonoBehaviour
             return;
         }
 #endif
-        if (SceneManager.maskedPost)
+        if (rt == null)
         {
             rt = RenderTexture.GetTemporary(Screen.width, Screen.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 2, RenderTextureMemoryless.None);
-            Graphics.Blit(source, rt);
-            Graphics.Blit(source, rt, material);
-            RenderTexture.active = rt;
-            if (img != null && rt != null)
-            {
-                img.gameObject.SetActive(true);
-                img.texture = rt;
-            }
-            Graphics.Blit(rt, destination);
-            RenderTexture.active = destination;
-            GL.Clear(true, false, Color.clear);
-            RenderTexture.active = null;
-            RenderTexture.ReleaseTemporary(rt);
         }
-        else
+        Graphics.Blit(source, rt);
+        Graphics.Blit(source, rt, material);
+        RenderTexture.active = rt;
+        if (img != null && rt != null)
         {
-            if (img != null) { img.gameObject.SetActive(false); }
-            Graphics.Blit(source, destination, material);
+            img.gameObject.SetActive(true);
+            img.texture = rt;
+        }
+        Graphics.Blit(rt, destination);
+        RenderTexture.active = destination;
+        GL.Clear(true, false, Color.clear);
+        RenderTexture.active = null;
+        //RenderTexture.ReleaseTemporary(rt);
+    }
+
+    private void OnDisable()
+    {
+        if (img != null)
+        {
+            img.gameObject.SetActive(false);
         }
     }
 }

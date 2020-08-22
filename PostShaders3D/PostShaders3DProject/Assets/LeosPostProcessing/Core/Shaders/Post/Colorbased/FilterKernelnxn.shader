@@ -13,7 +13,6 @@
 
 		SubShader
 		{
-
 		Cull Off ZWrite Off ZTest Always
 
 			Pass
@@ -71,6 +70,8 @@
 					fixed4 color = sum;
 					fixed4 midColor = tex2D(_MainTex, uv);
 					color = lerp(midColor, color, _Fade);
+
+					if (color.r < 0.5 && color.g < 0.5 && color.b < 0.5) { midColor.a = 0; }
 
 					color.rgb *= midColor.a;
 					color.a = midColor.a;

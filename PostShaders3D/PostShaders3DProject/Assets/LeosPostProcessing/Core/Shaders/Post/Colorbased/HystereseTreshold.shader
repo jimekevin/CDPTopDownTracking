@@ -53,7 +53,7 @@
 					return _FrontColor;
 				}
 
-				return fixed4(_BackColor.rgb, col.a);
+				return fixed4(_BackColor.rgb * _BackColor.a, _BackColor.a);
             }
             ENDCG
         }
