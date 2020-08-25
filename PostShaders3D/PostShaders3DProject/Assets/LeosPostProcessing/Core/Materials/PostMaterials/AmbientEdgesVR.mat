@@ -87,5 +87,5 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _UVtoView: {r: 5.2260323, g: 2.9382086, b: -2.6130161, a: -1.4691043}
+    - _UVtoView: {r: 2.0538032, g: 1.1547005, b: -1.0269016, a: -0.57735026}
     - _UVtoView2: {r: 2, g: 1, b: 194, a: 0}

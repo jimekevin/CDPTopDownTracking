@@ -24,7 +24,7 @@ public class AmbientEdges : DepthVisualization
         //blur
         rtBlur = RenderTexture.GetTemporary(Screen.width, Screen.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 2, RenderTextureMemoryless.None);
         Graphics.Blit(rtAO, rtBlur, blur);
-        if (debug)
+        if (!debug)
         {
             Graphics.Blit(rtBlur, source);
             material.SetFloat("_Fade", 1);
