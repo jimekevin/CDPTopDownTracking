@@ -62,6 +62,7 @@ Material:
     m_Floats:
     - PixelSnap: 0
     - _Aspect: 1.77777
+    - _BlackAlpha: 0
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1

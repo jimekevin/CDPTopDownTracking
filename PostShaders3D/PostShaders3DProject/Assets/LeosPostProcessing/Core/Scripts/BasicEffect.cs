@@ -29,7 +29,6 @@ public class BasicEffect : MonoBehaviour
         {
             rt = RenderTexture.GetTemporary(Screen.width, Screen.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 2, RenderTextureMemoryless.None);
         }
-        Graphics.Blit(source, rt);
         Graphics.Blit(source, rt, material);
         RenderTexture.active = rt;
         if (img != null && rt != null)
@@ -44,7 +43,7 @@ public class BasicEffect : MonoBehaviour
         //RenderTexture.ReleaseTemporary(rt);
     }
 
-    private void OnDisable()
+    protected void OnDisable()
     {
         if (img != null)
         {

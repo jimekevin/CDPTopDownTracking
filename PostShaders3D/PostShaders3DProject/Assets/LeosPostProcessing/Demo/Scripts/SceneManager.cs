@@ -6,6 +6,8 @@ using System.Linq;
 
 public class SceneManager : MonoBehaviour
 {
+    public bool isVR;
+
     [Header("Environments")]
     public GameObject[] environments;
     public string[] envNames;
@@ -15,7 +17,6 @@ public class SceneManager : MonoBehaviour
 
     [Header("Setups")]
     public int setupNumber = 6;
-    public Material[] matBySetup;
     public GameObject[] camBySetup;
     public GameObject[] optionBySetup;
     public Button[] SetupButtons;
@@ -23,24 +24,35 @@ public class SceneManager : MonoBehaviour
     [Header("Additional Options")]
     public Light sceneLight;
 
-    private int curEnv, curSetup;
+    private int curEnv, lastClickedSetup, curSetup;
+    private List<int> curSetups;
     private bool drawTextures;
     public static bool maskedPost;
-    private Dictionary<MeshRenderer, Material[]> allMaterials;
+    [HideInInspector]
+    public Dictionary<MeshRenderer, RendererData> allMeshes;
     public static SceneManager instance;
 
     public List<GameObject> switchOn;
+
+    public struct RendererData
+    {
+        public Material[] materials;
+        public bool isWireframe;
+    }
 
     // Start is called before the first frame update
     void Awake()
     {
         instance = this;
-        allMaterials = new Dictionary<MeshRenderer, Material[]>();
+        allMeshes = new Dictionary<MeshRenderer, RendererData>();
         foreach (GameObject g in environments) { g.SetActive(true); }
         MeshRenderer[] meshies = FindObjectsOfType<MeshRenderer>();
         for (int i = 0; i < meshies.Length; i++)
         {
-            allMaterials.Add(meshies[i], meshies[i].materials);
+            RendererData rd;
+            rd.materials = meshies[i].sharedMaterials;
+            rd.isWireframe = meshies[i].gameObject.layer == LayerMask.NameToLayer("Wireframe");
+            allMeshes.Add(meshies[i], rd);
         }
         CameraManager.cams = new Camera[camBySetup.Length];
         for (int i = 0; i < camBySetup.Length; i++)
@@ -48,8 +60,9 @@ public class SceneManager : MonoBehaviour
             CameraManager.cams[i] = camBySetup[i].GetComponent<Camera>();
         }
         curEnv = 0;
-        curSetup = 0;
-        drawTextures = true;
+        lastClickedSetup = 0;
+        curSetups = new List<int>();
+        ToggleTextures(false);
         ChangeEnvironment(0);
         SetSetup(0);
         ToggleShadows(true);
@@ -92,24 +105,41 @@ public class SceneManager : MonoBehaviour
         {
             if (!value)
             {
-                string[] masknames = { "Default", "NoEffect" };
-                c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
-                c.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
+                if (!c.name.Contains("Wireframe"))
+                {
+                    string[] masknames = { "Default", "NoEffect" };
+                    c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
+                    c.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
+                }
             }
             else
             {
-                string[] masknames = { "Default" };
-                c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
-                c.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
+                if (!c.name.Contains("Wireframe"))
+                {
+                    string[] masknames = { "Default" };
+                    c.GetComponent<Camera>().cullingMask = LayerMask.GetMask(masknames);
+                    c.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
+                }
             }
         }
-        if (!value)
+        foreach (KeyValuePair<MeshRenderer, RendererData> pair in allMeshes)
         {
-            foreach (KeyValuePair<MeshRenderer, Material[]> pair in allMaterials)
+            if (!value)
             {
-                if (pair.Key.gameObject.layer != LayerMask.NameToLayer("Wireframe"))
+                if (pair.Value.isWireframe)
+                {
+                    pair.Key.gameObject.layer = LayerMask.NameToLayer("Wireframe");
+                }
+                else
                 {
                     pair.Key.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+                }
+            }
+            else
+            {
+                if (pair.Value.isWireframe)
+                {
+                    pair.Key.gameObject.layer = LayerMask.NameToLayer("WireframeNoEffect");
                 }
             }
         }
@@ -118,25 +148,50 @@ public class SceneManager : MonoBehaviour
 
     public void SetSetup(int value)
     {
+        if (isVR) { SetSetupVR(value); }
+        else { SetSetupMulti(value); }
+    }
+
+    public void SetSetupMulti(int value)
+    {
+        lastClickedSetup = value;
+        if (curSetups.Contains(value)) { curSetups.Remove(value); }
+        else { curSetups.Add(value); }
+        if (curSetups.Count == 0) { SetSetup(0); }
+
+        for (int i = 0; i < setupNumber; i++)
+        {
+            SetupButtons[i].image.color = curSetups.Contains(i) ? new Color(0.6f, 1, 0.8f, 1) : Color.white;
+            camBySetup[i].SetActive(curSetups.Contains(i));
+            if (optionBySetup[i] != null) { optionBySetup[i].SetActive(i == lastClickedSetup && curSetups.Contains(i)); }
+        }
+
+        camBySetup[value].GetComponent<BasicEffect>().img.transform.SetAsLastSibling();
+        SetGlobalMaterials();
+    }
+
+    public void SetSetupVR(int value)
+    {
         curSetup = value;
+
         for (int i = 0; i < setupNumber; i++)
         {
             SetupButtons[i].image.color = i == curSetup ? new Color(0.6f, 1, 0.8f, 1) : Color.white;
             camBySetup[i].SetActive(i == curSetup);
             if (optionBySetup[i] != null) { optionBySetup[i].SetActive(i == curSetup); }
         }
+
+        camBySetup[value].GetComponent<BasicEffect>().img.transform.SetAsLastSibling();
         SetGlobalMaterials();
     }
 
     public void SetGlobalMaterials()
     {
-        foreach (KeyValuePair<MeshRenderer,Material[]> pair in allMaterials)
+        foreach (KeyValuePair<MeshRenderer,RendererData> pair in allMeshes)
         {
-            bool baseSetup = matBySetup[curSetup] == null;
-            if (LayerMask.LayerToName(pair.Key.gameObject.layer) == "Wireframe")
+            if (pair.Value.isWireframe)
             {
-                Debug.Log(pair.Key.gameObject.name);
-                Material[] m = new Material[pair.Value.Length];
+                Material[] m = new Material[pair.Value.materials.Length];
                 for (int i = 0; i < m.Length; i++)
                 {
                     m[i] = wireframe;
@@ -145,36 +200,23 @@ public class SceneManager : MonoBehaviour
             }
             else
             {
-                if (maskedPost) { baseSetup = baseSetup || pair.Key.gameObject.layer == LayerMask.NameToLayer("NoEffect"); }
-                if (baseSetup)
+                if (drawTextures)
                 {
-                    if (drawTextures)
-                    {
-                        pair.Key.sharedMaterials = pair.Value;
-                    }
-                    else
-                    {
-                        Material[] m = new Material[pair.Value.Length];
-                        for (int i = 0; i < m.Length; i++)
-                        {
-                            if (grounds.Contains(pair.Key.gameObject))
-                            {
-                                m[i] = noTextureGround;
-                            }
-                            else
-                            {
-                                m[i] = noTexture;
-                            }
-                        }
-                        pair.Key.sharedMaterials = m;
-                    }
+                    pair.Key.sharedMaterials = pair.Value.materials;
                 }
                 else
                 {
-                    Material[] m = new Material[pair.Value.Length];
+                    Material[] m = new Material[pair.Value.materials.Length];
                     for (int i = 0; i < m.Length; i++)
                     {
-                        m[i] = matBySetup[curSetup];
+                        if (grounds.Contains(pair.Key.gameObject))
+                        {
+                            m[i] = noTextureGround;
+                        }
+                        else
+                        {
+                            m[i] = noTexture;
+                        }
                     }
                     pair.Key.sharedMaterials = m;
                 }

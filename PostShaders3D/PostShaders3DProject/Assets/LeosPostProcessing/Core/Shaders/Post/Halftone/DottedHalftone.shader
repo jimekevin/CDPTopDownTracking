@@ -4,6 +4,7 @@
     {
 		_MainTex("Main Texture", 2D) = "white" {}
 		_BrightColor("Bright Color", Color) = (1,1,1,1)
+		_DarkColor("Dark Color", Color) = (0,0,0,0)
 		_RasterSize("Raster Size", Range(0.001,1)) = 0.02
 		_ColorFade("Color Fade", Range(0,1)) = 0.5
 		_Mid("Mid Intensity", Range(0,1)) = 0.5
@@ -45,7 +46,7 @@
             }
 
 			sampler2D _MainTex;
-			half4 _BrightColor;
+			half4 _BrightColor, _DarkColor;
 			float _Aspect, _RasterSize, _ColorFade, _Mid, _Spread, _SoftFactor;
 
             fixed4 frag (v2f i) : SV_Target
@@ -60,7 +61,6 @@
 
 				float radius = 0.7071 * intensity;
 				
-				fixed4 result = fixed4(0, 0, 0, 0);
 				float2 uv = float2(fmod(i.uv.x, _RasterSize) / _RasterSize, fmod(i.uv.y, _RasterSize * _Aspect) / (_RasterSize * _Aspect));
 				uv = uv - float2(0.5, 0.5);
 				float factor = 0;
@@ -69,11 +69,11 @@
 
 				if (radius < 0.1f) { factor = 0; }
 
-				result += _BrightColor * factor;
+				fixed4 result = lerp(_DarkColor, _BrightColor, factor);
 				result = lerp(result, color, _ColorFade * factor);
 
-				result.rgb *= color.a;
-				result.a = color.a;
+				result.rgb *= color.a * result.a;
+				result.a *= color.a;
 
 				return result;
             }

@@ -86,11 +86,16 @@
 			float _BacklineFactor;
 			float _NormalTreshold;
 			fixed4 _BackColor;
-			int _Backfaces;
-			int _BacklineDotted;
+			uint _Backfaces;
+			uint _BacklineDotted;
+			uint _Transparent;
 
 			fixed4 frag(g2f i) : SV_Target{
 				if (!_Backfaces)
+				{
+					discard;
+				}
+				if (!_Transparent)
 				{
 					discard;
 				}
@@ -196,7 +201,7 @@
 
 				float _FrontlineWidth;
 				fixed4 _FrontColor, _TintColor;
-				int _Transparent;
+				uint _Transparent;
 				float _NormalTreshold;
 
 				fixed4 frag(g2f i) : SV_Target {

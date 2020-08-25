@@ -5,11 +5,12 @@ using UnityEngine;
 public class WireframeManager : MonoBehaviour
 {
     public Material mat;
+    public bool startTransparent = false;
 
     private void Start()
     {
         DrawDiagonals(false);
-        DrawTransparent(false);
+        DrawTransparent(startTransparent);
         DrawBackfaces(true);
         DrawDotted(true);
         SetNormalTreshold(0);

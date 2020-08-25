@@ -38,13 +38,31 @@ public class SelectionField : MonoBehaviour, IPointerDownHandler, IPointerEnterH
                 {
                     changedSth = true;
                     changed.Add(h.collider.gameObject);
-                    if (h.collider.gameObject.layer == LayerMask.NameToLayer("Default"))
+                    MeshRenderer mr = h.collider.GetComponent<MeshRenderer>();
+                    bool isWireframe = SceneManager.instance.allMeshes[mr].isWireframe;
+                    if (isWireframe)
                     {
-                        h.collider.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+                        if (h.collider.gameObject.layer == LayerMask.NameToLayer("Wireframe"))
+                        {
+                            Debug.Log("hello1");
+                            h.collider.gameObject.layer = LayerMask.NameToLayer("WireframeNoEffect");
+                        }
+                        else
+                        {
+                            Debug.Log("hello2");
+                            h.collider.gameObject.layer = LayerMask.NameToLayer("Wireframe");
+                        }
                     }
                     else
                     {
-                        h.collider.gameObject.layer = LayerMask.NameToLayer("Default");
+                        if (h.collider.gameObject.layer == LayerMask.NameToLayer("Default"))
+                        {
+                            h.collider.gameObject.layer = LayerMask.NameToLayer("NoEffect");
+                        }
+                        else
+                        {
+                            h.collider.gameObject.layer = LayerMask.NameToLayer("Default");
+                        }
                     }
                 }
             }

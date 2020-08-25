@@ -8,7 +8,6 @@ public class HalftoneManager : MonoBehaviour
     public Material mat;
     public RawImage imageUI;
     public Texture2D[] textures;
-    public BasicEffect invertEffect;
     private int currentTexture;
 
     // Start is called before the first frame update
@@ -52,12 +51,6 @@ public class HalftoneManager : MonoBehaviour
         mat.SetFloat("_ShearFactor", value);
     }
 
-    public void SetInvert(bool value)
-    {
-        if (invertEffect == null) { return; }
-        invertEffect.enabled = value;
-    }
-
     private void OnDestroy()
     {
         SetColorFade(0);
@@ -65,6 +58,5 @@ public class HalftoneManager : MonoBehaviour
         SetSoftness(0.4f);
         SetIntensity(0.6f);
         SetShear(0.5f);
-        SetInvert(false);
     }
 }

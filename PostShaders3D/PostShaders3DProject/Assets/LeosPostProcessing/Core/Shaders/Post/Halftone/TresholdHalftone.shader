@@ -4,7 +4,8 @@
     {
 		_MainTex("Main Texture", 2D) = "white" {}
 		_RasterTex("Raster Texture", 2D) = "white" {}
-		_Color("Bright Color", Color) = (1,1,1,1)
+		_BrightColor("Bright Color", Color) = (1,1,1,1)
+		_DarkColor("Dark Color", Color) = (0,0,0,0)
 		_RasterSize("Raster Size", Range(0.001, 0.1)) = 0.02
 		_ColorFade("Color Fade", Range(0,1)) = 0.5
 		_Intensity("Intensity Factor", Range(0,1)) = 0.75
@@ -45,7 +46,7 @@
             }
 
 			sampler2D _MainTex, _RasterTex, _CameraDepthNormalsTexture;
-			half4 _Color;
+			half4 _BrightColor, _DarkColor;
 			float _Aspect, _RasterSize, _ColorFade, _Intensity, _ShearFactor;
 
             fixed4 frag (v2f i) : SV_Target
@@ -63,7 +64,6 @@
 				
                 fixed3 normal = normalize(tex2D(_CameraDepthNormalsTexture, i.uv).xyz);
                 float2 shear = (normal.xy - float2(0.5, 0.5)) * _ShearFactor;
-				fixed4 result = fixed4(0, 0, 0, 0);
                 float2 uv = i.uv;
                 float2x2 shearMatrix = float2x2(1, shear.x, shear.y, 1);
                 uv = mul(uv, shearMatrix);
@@ -73,14 +73,12 @@
 
 				if (intensity >= 1 - rasterIntensity) { factor = 1; }
 
-				result += fixed4(1, 1, 1, 1) * factor;
-				result = lerp(result, color, _ColorFade * factor) * _Color;
+				fixed4 result = lerp(_DarkColor, _BrightColor, factor);
+				result = lerp(result, color, _ColorFade * factor);
 
-				result.rgb *= color.a;
-				result.a = color.a;
+				result.rgb *= color.a * result.a;
+				result.a *= color.a;
 
-				//return rasterIntensity;
-				//return (uv.x + uv.y) / 2;
 				return result;
             }
             ENDCG

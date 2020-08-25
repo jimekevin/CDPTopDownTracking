@@ -5,7 +5,9 @@
 		_MainTex("Main Texture", 2D) = "white" {}
 		_KernelTex("Kernel Texture", 2D) = "white" {}
 		_Fade("Fade", Range(0.0,1)) = 1
+		_BlackAlpha("Make Black Alpha (0 or 1)", Range(0, 1)) = 1
 		_Aspect("Aspect", float) = 1.7777777
+		_PlusKernel("Finetune Kernel", Range(-0.01,0.01)) = 0
 		_Distance("Distance", Range(0.0,0.1)) = 0.01
 		_KernelSize("Kernel Size", Range(1, 9)) = 3
 		_KernelWeight("Kernel Weight", Float) = 4
@@ -47,8 +49,8 @@
 				}
 
 				sampler2D _MainTex, _KernelTex;
-				float _Fade, _Distance, _Aspect, _KernelWeight;
-				uint _KernelSize;
+				float _Fade, _Distance, _Aspect, _KernelWeight, _PlusKernel;
+				uint _KernelSize, _BlackAlpha;
 
 				fixed4 frag(v2f IN) : SV_Target
 				{
@@ -62,7 +64,9 @@
 							float4 val = tex2D(_MainTex, cuv);
 							float2 kernelUV = (float2(x, y) + offset + 0.5) / (offset * 2 + 1);
 							//val *= (tex2D(_KernelTex, kernelUV).r) * _KernelWeight;
-							val *= (tex2D(_KernelTex, kernelUV).r - 0.5) * 2 * _KernelWeight;
+							float kernelVal = tex2D(_KernelTex, kernelUV).r - 0.5 + _PlusKernel;
+							if (abs(kernelVal) < 0) { kernelVal = 0; }
+							val *= kernelVal * 2 * _KernelWeight;
 							sum += val;
 						}
 					}
@@ -71,7 +75,7 @@
 					fixed4 midColor = tex2D(_MainTex, uv);
 					color = lerp(midColor, color, _Fade);
 
-					if (color.r < 0.5 && color.g < 0.5 && color.b < 0.5) { midColor.a = 0; }
+					if (_BlackAlpha && color.r < 0.01 && color.g < 0.01 && color.b < 0.01) { midColor.a = 0; }
 
 					color.rgb *= midColor.a;
 					color.a = midColor.a;

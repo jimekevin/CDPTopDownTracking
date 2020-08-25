@@ -1,0 +1,2 @@
+This Shader was downloaded from Catlike Coding:
+https://catlikecoding.com/unity/tutorials/advanced-rendering/fxaa/
