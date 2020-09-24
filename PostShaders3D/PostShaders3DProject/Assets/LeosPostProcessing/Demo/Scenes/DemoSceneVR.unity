@@ -13654,8 +13654,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c18b542098fd2f24a8139eeea689cf47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minMax: {x: 0.05, y: 1}
-  zoomSpeed: 0.5
+  minMax: {x: 0.025, y: 1}
+  zoomSpeed: 0.25
 --- !u!4 &438678059 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8656832586979303392, guid: 8e90efa692ec80944920ce19bb6b8384,
