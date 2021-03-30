@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>shaders/point_cloud.frag</file>
+        <file>shaders/point_cloud.vert</file>
+        <file>shaders/map_view.frag</file>
+        <file>shaders/map_view.vert</file>
+    </qresource>
+</RCC>

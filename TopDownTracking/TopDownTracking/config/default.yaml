@@ -1,0 +1,32 @@
+# 1: kinect camera (default)
+# 2: kinect input file, parameter input_source must be specified
+# 3: realsense camera
+input: 3
+#input_source: "C:\Projects\cdp_tests\data\1611710996_u_quitegood"
+input_source: "C:\Projects\cdp_tests\data\1611863797_u_better"
+
+#task_thresholds_minX: -10.0f
+#task_thresholds_maxX: 10.0f
+#task_thresholds_minY: -10.0f
+#task_thresholds_maxY: 10.0f
+#task_thresholds_minZ: 0.0f
+#task_thresholds_maxZ: 10.0f
+#task_countour_detector_threshold1: 0.08f
+#task_countour_detector_threshold2: 1.0f
+
+task_thresholds_minX: -0.8f
+task_thresholds_maxX: 0.4f
+task_thresholds_minY: -0.1f
+task_thresholds_maxY: 0.6f
+task_thresholds_minZ: 1.9f
+task_thresholds_maxZ: 2.4f
+task_countour_detector_threshold1: 0.7f
+task_countour_detector_threshold2: 1.0f
+
+#QVector3D position = QVector3D(-0.25f, 0.0f, -2.0f);
+#QVector3D direction = QVector3D(0.0f, 0.0f, 1.0f);
+#QVector3D right = QVector3D(-1.0f, 0.0f, 0.0f);
+#QVector3D up = QVector3D(0.0f, 1.0f, 0.0f);
+#float FoV = 45.0;
+#float horizontalAngle = 0.0f; // 3.14f;
+#float verticalAngle = 0.0f; // look at the horizon
