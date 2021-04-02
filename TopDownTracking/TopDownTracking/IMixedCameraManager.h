@@ -24,6 +24,7 @@ public:
 	SCANNERLIB_API IMixedCameraManager() = default;
 	virtual SCANNERLIB_API ~IMixedCameraManager() = default;
 	virtual SCANNERLIB_API bool init() = 0;
+    virtual SCANNERLIB_API bool init(std::string filePath = "") = 0;
 	virtual SCANNERLIB_API void stop() = 0;
 	virtual SCANNERLIB_API cv::Mat getColorFrame(int delayMS) = 0;
 	virtual SCANNERLIB_API cv::Mat getDepthFrame(int delayMS) = 0;

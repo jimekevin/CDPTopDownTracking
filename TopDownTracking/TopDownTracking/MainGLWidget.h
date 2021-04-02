@@ -13,7 +13,6 @@
 #include <chrono>
 #include <fstream>
 
-#include "Pipeline.h"
 #ifdef APPLE
 #include "KinectManager_MacOS.h"
 #else
@@ -22,7 +21,7 @@
 #include "RealsenseCameraManager.h"
 #include "Map.h"
 #include "Config.h"
-//#include "pipeline_tasks/ThresholdFilter.h"
+#include "pipeline_tasks/ThresholdFilter.h"
 //#include "pipeline_tasks/ContourDetector.h"
 //#include "pipeline_tasks/CollisionMapper.h"
 
@@ -38,9 +37,7 @@ public:
 	explicit MainGLWidget(QWidget *parent = 0);
 	~MainGLWidget();
 
-	rs2::threshold_filter thresholdFilter;
-
-	//ThresholdFilter *thresholdFilter;
+	ThresholdFilter *thresholdFilter;
 	//ContourDetector *contourDetector;
 	//CollisionMapper *collisionMapper;
 
@@ -112,7 +109,6 @@ private:
 
 	RealsenseCameraManager *rcm;
 
-	Pipeline pipeline;
 	bool pipelineEnabled = true;
 	std::vector<bool> enabledPipelineTasks = { true, true, true, true, true, true, true, true, true };
 

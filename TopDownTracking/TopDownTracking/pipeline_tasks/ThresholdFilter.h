@@ -1,12 +1,12 @@
-#ifndef THRESHOLD_FILTER_H
-#define THRESHOLD_FILTER_H
+#ifndef TOPDOWNTRACKING_THRESHOLD_FILTER_H
+#define TOPDOWNTRACKING_THRESHOLD_FILTER_H
 
-#include "Pipeline.h"
+#include "CVTask.h"
 
 #include <cmath>
 
 class ThresholdFilter :
-	public Pipeline::Task
+	public CVTask
 {
 public:
 	float minX = std::numeric_limits<double>::infinity();
@@ -19,7 +19,7 @@ public:
 	ThresholdFilter(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
 
 	void updateMinMax(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
-	void apply(cv::Mat& depthMat, cv::Mat& rgbMat);
+    void process(cv::InputOutputArray depthMat, cv::InputOutputArray colorMat) override;
 };
 
-#endif // THRESHOLD_FILTER_H
+#endif // TOPDOWNTRACKING_THRESHOLD_FILTER_H

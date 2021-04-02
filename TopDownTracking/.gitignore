@@ -261,3 +261,6 @@ __pycache__/
 *.pyc
 
 cmake-build-debug/
+
+# Realsense2 video recordings
+*.bag

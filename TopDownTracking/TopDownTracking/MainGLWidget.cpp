@@ -29,8 +29,13 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #define CONFIG_DEFAULT_PATH "config/default.yaml"
+#ifdef APPLE
 #define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\data\\"
 #define CONFIG_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\config\\"
+#else
+#define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\data\\"
+#define CONFIG_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\config\\"
+#endif
 
 #ifdef APPLE
 //#include "KinectManager_MacOS.h"
@@ -226,11 +231,12 @@ MainGLWidget::MainGLWidget(QWidget *parent)
 	inputMode = conf->getValueI("input");
 
 	rcm = new RealsenseCameraManager();
-	rcm->init();
-	//rs2::threshold_filter thresholdFilter{};
+	rcm->init(conf->getValue("input_source"));
+	//rs2::threshold_filter thresholdFilter2{};
 	//rcm->addFilter(thresholdFilter);
 
-	//thresholdFilter = new ThresholdFilter(-10.0f, 10.0f, -10.0f, 10.0f, 0.5f, 3.0f);
+	thresholdFilter = new ThresholdFilter(-10.0f, 10.0f, -10.0f, 10.0f, 0.5f, 3.0f);
+	rcm->addTask({ thresholdFilter, true });
 	//contourDetector = new ContourDetector(0.8f, 1.0f);
 	// K1NECT rework CollisionMapper
 	//collisionMapper = new CollisionMapper(contourDetector, &map, CM.color2camera);
@@ -261,6 +267,7 @@ void MainGLWidget::showEvent(QShowEvent *event) {
 MainGLWidget::~MainGLWidget()
 {
 	if (inputMode == 3) {
+	    delete thresholdFilter;
 		delete rcm;
 	}
 }
@@ -444,14 +451,22 @@ void MainGLWidget::timerEvent(QTimerEvent *)
 	// Enable or disable certain filters
 	if (pipelineEnabled) {
 		for (int i = 0; i < enabledPipelineTasks.size(); ++i) {
-			rcm->enableFilter(i, enabledPipelineTasks[i]);
+			rcm->enableTask(i, enabledPipelineTasks[i]);
 		}
 	}
 	// Poll latest frames
 	if (!rcm->pollFrames()) {
 		return;
 	}
-	auto rs = rcm->processFrames();
+
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
+
+    auto rs = rcm->processFrames();
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    qDebug() << duration.count();
 
 	// Update frame id
 	emit updatedCurrentFrame(rs.points.get_frame_number());
@@ -856,21 +871,21 @@ void MainGLWidget::exportSettings() {
 }
 
 void MainGLWidget::loadSettings() {
-	//auto taskThresholdsMinX = conf->getValueF("task_thresholds_minX");
-	//auto taskThresholdsMaxX = conf->getValueF("task_thresholds_maxX");
-	//auto taskThresholdsMinY = conf->getValueF("task_thresholds_minY");
-	//auto taskThresholdsMaxY = conf->getValueF("task_thresholds_maxY");
-	//auto taskThresholdsMinZ = conf->getValueF("task_thresholds_minZ");
-	//auto taskThresholdsMaxZ = conf->getValueF("task_thresholds_maxZ");
+	auto taskThresholdsMinX = conf->getValueF("task_thresholds_minX");
+	auto taskThresholdsMaxX = conf->getValueF("task_thresholds_maxX");
+	auto taskThresholdsMinY = conf->getValueF("task_thresholds_minY");
+	auto taskThresholdsMaxY = conf->getValueF("task_thresholds_maxY");
+	auto taskThresholdsMinZ = conf->getValueF("task_thresholds_minZ");
+	auto taskThresholdsMaxZ = conf->getValueF("task_thresholds_maxZ");
 	//auto taskCountourDetectorThreshold1 = conf->getValueF("task_countour_detector_threshold1");
 	//auto taskCountourDetectorThreshold2 = conf->getValueF("task_countour_detector_threshold2");
 
-	//thresholdFilter->minX = taskThresholdsMinX != INFINITY ? taskThresholdsMinX : thresholdFilter->minX;
-	//thresholdFilter->maxX = taskThresholdsMaxX != INFINITY ? taskThresholdsMaxX : thresholdFilter->maxX;
-	//thresholdFilter->minY = taskThresholdsMinY != INFINITY ? taskThresholdsMinY : thresholdFilter->minY;
-	//thresholdFilter->maxY = taskThresholdsMaxY != INFINITY ? taskThresholdsMaxY : thresholdFilter->maxY;
-	//thresholdFilter->minZ = taskThresholdsMinZ != INFINITY ? taskThresholdsMinZ : thresholdFilter->minZ;
-	//thresholdFilter->maxZ = taskThresholdsMaxZ != INFINITY ? taskThresholdsMaxZ : thresholdFilter->maxZ;
+	thresholdFilter->minX = taskThresholdsMinX != INFINITY ? taskThresholdsMinX : thresholdFilter->minX;
+	thresholdFilter->maxX = taskThresholdsMaxX != INFINITY ? taskThresholdsMaxX : thresholdFilter->maxX;
+	thresholdFilter->minY = taskThresholdsMinY != INFINITY ? taskThresholdsMinY : thresholdFilter->minY;
+	thresholdFilter->maxY = taskThresholdsMaxY != INFINITY ? taskThresholdsMaxY : thresholdFilter->maxY;
+	thresholdFilter->minZ = taskThresholdsMinZ != INFINITY ? taskThresholdsMinZ : thresholdFilter->minZ;
+	thresholdFilter->maxZ = taskThresholdsMaxZ != INFINITY ? taskThresholdsMaxZ : thresholdFilter->maxZ;
 	//contourDetector->threshold1 = taskCountourDetectorThreshold1 != INFINITY ? taskCountourDetectorThreshold1 : contourDetector->threshold1;
 	//contourDetector->threshold2 = taskCountourDetectorThreshold2 != INFINITY ? taskCountourDetectorThreshold2 : contourDetector->threshold2;
 
@@ -878,12 +893,12 @@ void MainGLWidget::loadSettings() {
 }
 
 void MainGLWidget::resetSettings() {
-	//thresholdFilter->minX = -10.0f;
-	//thresholdFilter->maxX = 10.0f;
-	//thresholdFilter->minY = -10.0f;
-	//thresholdFilter->maxY = 10.0f;
-	//thresholdFilter->minZ = -10.0f;
-	//thresholdFilter->maxZ = 10.0f;
+	thresholdFilter->minX = -10.0f;
+	thresholdFilter->maxX = 10.0f;
+	thresholdFilter->minY = -10.0f;
+	thresholdFilter->maxY = 10.0f;
+	thresholdFilter->minZ = -10.0f;
+	thresholdFilter->maxZ = 10.0f;
 	//contourDetector->threshold1 = 0.8f;
 	//contourDetector->threshold2 = 1.0f;
 

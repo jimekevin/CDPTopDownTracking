@@ -8,17 +8,26 @@ RealsenseCameraManager::~RealsenseCameraManager()
 {
 	stop();
 }
-
 bool RealsenseCameraManager::init() {
+    rs2::config cfg;
+    cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
+    //cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
+    cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
+    return (bool) pipe->start(cfg);
+}
+
+bool RealsenseCameraManager::init(std::string filePath) {
+    pipe = std::make_shared<rs2::pipeline>();
 	rs2::config cfg;
-	cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
+    cfg.enable_device_from_file(filePath);
+	//cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
 	//cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
-	cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
-	return (bool) pipe.start(cfg);
+	//cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
+	return (bool) pipe->start(cfg);
 }
 
 void RealsenseCameraManager::stop() {
-	pipe.stop();
+	pipe->stop();
 }
 
 cv::Mat RealsenseCameraManager::getColorFrame([[maybe_unused]] int delayMS) {
@@ -41,9 +50,9 @@ cv::Point3d RealsenseCameraManager::get3DFromDepthAt(double x, double y, double 
 }
 
 bool RealsenseCameraManager::pollFrames() {
-	return pipe.poll_for_frames(&frames);
+	return pipe->poll_for_frames(&frames);
 
-	//if (!pipe.poll_for_frames(&frames)) {
+	//if (!pipe->poll_for_frames(&frames)) {
 	//	return false;
 	//}
 
@@ -88,7 +97,23 @@ RealsenseCameraManager::RenderSet RealsenseCameraManager::processFrames() {
 	//rs2::colorizer c;
 	//colorFrame = c.process(depthFrame);
 
-	return RenderSet{ points, depthFrame, colorFrame };
+	cv::Mat cvDepthFrame, cvColorFrame;
+//#pragma omp parallel for num_threads(2)
+    for (int i = 0; i < 2; ++i) {
+	    if (i == 0) {
+            cvDepthFrame = convertDepthFrameToMetersMat(depthFrame);
+	    } else {
+	        cvColorFrame = convertFrameToMat(colorFrame);
+	    }
+	}
+
+    for (auto &&task : tasks) {
+        if (task.enabled) {
+            task.task->process(cvDepthFrame, cvColorFrame);
+        }
+    }
+
+	return RenderSet{ points, depthFrame, colorFrame, cvDepthFrame, cvColorFrame };
 }
 
 int RealsenseCameraManager::addFilter(Filter filter) {
@@ -100,6 +125,17 @@ void RealsenseCameraManager::enableFilter(int filterId, bool enabled) {
 	if (filterId >= 0 && filterId < filters.size()) {
 		filters[filterId].enabled = enabled;
 	}
+}
+
+int RealsenseCameraManager::addTask(Task task) {
+    tasks.emplace_back(task);
+    return tasks.size() - 1;
+}
+
+void RealsenseCameraManager::enableTask(int taskId, bool enabled) {
+    if (taskId >= 0 && taskId < tasks.size()) {
+        tasks[taskId].enabled = enabled;
+    }
 }
 
 // TODO: Remove

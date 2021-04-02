@@ -22,6 +22,7 @@ find_package(Threads REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(realsense2 CONFIG REQUIRED)
 find_package(Boost REQUIRED)
+find_package(OpenMP REQUIRED)
 
 set(SOURCES
         ${PROJECT_SOURCE_DIR}/TopDownTracking/Config.cpp
@@ -30,12 +31,11 @@ set(SOURCES
         ${PROJECT_SOURCE_DIR}/TopDownTracking/MainWindow.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/Map.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/OutputTextBrowser.cpp
-        ${PROJECT_SOURCE_DIR}/TopDownTracking/Pipeline.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/RealsenseCameraManager.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/RecordVideoPushButton.cpp
+        ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks/ThresholdFilter.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/main.cpp
-        #${PROJECT_SOURCE_DIR}/TopDownTracking/glad/src/glad.c
-        )
+        ${PROJECT_SOURCE_DIR}/TopDownTracking/CVTask.cpp)
 
 add_executable(TopDownTracking ${SOURCES})
 
@@ -60,4 +60,5 @@ target_link_libraries(TopDownTracking
         #${freenect2_LIBRARIES}
         Qt5::Core Qt5::Gui Qt5::Widgets
         realsense2::fw realsense2::realsense2 realsense2::realsense-file
+        OpenMP::OpenMP_CXX
         )
