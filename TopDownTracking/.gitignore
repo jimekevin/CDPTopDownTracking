@@ -264,3 +264,6 @@ cmake-build-debug/
 
 # Realsense2 video recordings
 *.bag
+
+# Kevin: include my sln configuration
+!TopDownTracking.sln
