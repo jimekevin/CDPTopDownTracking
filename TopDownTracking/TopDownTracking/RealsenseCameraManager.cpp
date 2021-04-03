@@ -1,5 +1,10 @@
 #include "RealsenseCameraManager.h"
 
+//
+// References
+// - https://github.com/IntelRealSense/librealsense/issues/2634
+//
+
 RealsenseCameraManager::RealsenseCameraManager()
 {
 }
@@ -9,6 +14,7 @@ RealsenseCameraManager::~RealsenseCameraManager()
 	stop();
 }
 bool RealsenseCameraManager::init() {
+    pipe = std::make_shared<rs2::pipeline>();
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
     //cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
@@ -78,8 +84,9 @@ RealsenseCameraManager::RenderSet RealsenseCameraManager::processFrames() {
 
 	auto colorFrame = frames.get_color_frame();
 	auto depthFrame = frames.get_depth_frame();
-	pc.map_to(colorFrame);
-	auto points = pc.calculate(depthFrame);
+
+    pc.map_to(colorFrame);
+    auto points = pc.calculate(depthFrame);
 
 	rs2::frame colorFiltered = colorFrame;
 	rs2::frame depthFiltered = depthFrame;
@@ -138,7 +145,6 @@ void RealsenseCameraManager::enableTask(int taskId, bool enabled) {
     }
 }
 
-// TODO: Remove
 cv::Mat RealsenseCameraManager::convertFrameToMat(const rs2::frame& f)
 {
 	using namespace cv;

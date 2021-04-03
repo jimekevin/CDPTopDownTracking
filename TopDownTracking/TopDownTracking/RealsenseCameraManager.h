@@ -13,7 +13,7 @@ public:
 	SCANNERLIB_API RealsenseCameraManager();
 	SCANNERLIB_API ~RealsenseCameraManager() override;
     SCANNERLIB_API bool init() override;
-    SCANNERLIB_API bool init(std::string filePath = "") override;
+    SCANNERLIB_API bool init(std::string filePath) override;
 	SCANNERLIB_API void stop() override;
 	SCANNERLIB_API cv::Mat getColorFrame(int delayMS = 0) override;
 	SCANNERLIB_API cv::Mat getDepthFrame(int delayMS = 0) override;

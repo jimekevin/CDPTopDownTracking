@@ -1,11 +1,12 @@
 # 1: kinect camera (default)
 # 2: kinect input file, parameter input_source must be specified
 # 3: realsense camera
-input: 3
+# 4: realsense recording
+input: 4
 #input_source: "C:\Projects\cdp_tests\data\1611710996_u_quitegood"
 #input_source: "C:\Projects\cdp_tests\data\1611863797_u_better"
 #input_source: "../data/20210401_191338.bag"
-input_source: "/Users/lilith/Projekte/CDPTopDownTracking/data/20210401_191338.bag"
+input_source: "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/20210401_191338.bag"
 
 #task_thresholds_minX: -10.0f
 #task_thresholds_maxX: 10.0f

@@ -861,12 +861,12 @@
          </property>
          <item>
           <property name="text">
-           <string comment="fps30">30 FPS</string>
+           <string comment="fps60">60 FPS</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string comment="fps60">60 FPS</string>
+           <string comment="fps30">30 FPS</string>
           </property>
          </item>
         </widget>

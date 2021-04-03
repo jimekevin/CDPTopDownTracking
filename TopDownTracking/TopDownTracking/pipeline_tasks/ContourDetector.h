@@ -1,11 +1,11 @@
 #ifndef CANNY_FILTER_H
 #define CANNY_FILTER_H
 
-#include "Pipeline.h"
 #include <opencv2/imgproc.hpp>
+#include "CVTask.h"
 
 class ContourDetector :
-	public Pipeline::Task
+	public CVTask
 {
 public:
 	float threshold1;
@@ -17,7 +17,7 @@ public:
 
 	ContourDetector(float threshold1, float threshold2);
 
-	void apply(cv::Mat& depthMat, cv::Mat& rgbMat);
+    void process(cv::InputOutputArray depthMat, cv::InputOutputArray colorMat) override;
 };
 
 #endif // CANNY_FILTER_H

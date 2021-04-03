@@ -26,3 +26,4 @@ Projekt/Assets/ConsoleE.meta
 **/*.out
 **/*.gz
 **/*.toc
+*.idea

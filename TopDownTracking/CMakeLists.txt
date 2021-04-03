@@ -34,6 +34,7 @@ set(SOURCES
         ${PROJECT_SOURCE_DIR}/TopDownTracking/RealsenseCameraManager.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/RecordVideoPushButton.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks/ThresholdFilter.cpp
+        ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks/ContourDetector.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/main.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/CVTask.cpp)
 

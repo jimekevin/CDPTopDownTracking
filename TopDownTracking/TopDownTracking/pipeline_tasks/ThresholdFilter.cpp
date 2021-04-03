@@ -1,6 +1,7 @@
 #include "ThresholdFilter.h"
 
 #include <cmath>
+#include <QtCore/QDebug>
 
 ThresholdFilter::ThresholdFilter(float minX, float maxX, float minY, float maxY, float minZ, float maxZ)
         : minX(minX), maxX(maxX), minY(minY), maxY(maxY), minZ(minZ), maxZ(maxZ)
@@ -18,7 +19,29 @@ void ThresholdFilter::updateMinMax(float minX, float maxX, float minY, float max
 
 //void ThresholdFilter::apply(cv::Mat& depthMat, cv::Mat& colorMat) {
 void ThresholdFilter::process(cv::InputOutputArray depthMat, cv::InputOutputArray colorMat) {
+    typedef cv::Point3_<uint8_t> RGB;
+    cv::uint16_t minDepth = 38527;
+    cv::uint16_t maxDepth = 0;
+    colorMat.getMatRef().forEach<RGB>([&](RGB &p, const int *position) -> void { // p is RGB
+      //auto depth = depthMat.getMatRef().at<double>(position[0], position[1]);
+      auto depth = depthMat.getMatRef().ptr<double>(position[0])[position[1]]; // is .ptr faster than .at?
+      //minDepth = minDepth < depth ? minDepth : depth;
+      //maxDepth = maxDepth > depth ? maxDepth : depth;
+      if (depth >= 2.0f) {
+          p.x = 255;
+          p.y = 0;
+          p.z = 0;
+      } else if (depth < 0.0f) {
+        p.x = 0;
+        p.y = 255;
+        p.z = 0;
+      }
+      //qDebug() << depth << "; " << static_cast<float>(depth) << "; (" << position[0] << ", " << position[1] << ", " << position[2] << ")";
+    });
+
     return;
+
+    // This throws access exceptions ...
     //#pragma omp parallel
     for (int y = 0; y < depthMat.rows(); y++) {
         auto depthRow = depthMat.getMat().ptr<cv::Vec3f>(y);

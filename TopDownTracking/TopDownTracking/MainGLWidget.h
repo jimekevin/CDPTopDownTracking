@@ -22,7 +22,7 @@
 #include "Map.h"
 #include "Config.h"
 #include "pipeline_tasks/ThresholdFilter.h"
-//#include "pipeline_tasks/ContourDetector.h"
+#include "pipeline_tasks/ContourDetector.h"
 //#include "pipeline_tasks/CollisionMapper.h"
 
 class QOpenGLShaderProgram;
@@ -38,7 +38,7 @@ public:
 	~MainGLWidget();
 
 	ThresholdFilter *thresholdFilter;
-	//ContourDetector *contourDetector;
+	ContourDetector *contourDetector;
 	//CollisionMapper *collisionMapper;
 
 public slots:
@@ -113,7 +113,7 @@ private:
 	std::vector<bool> enabledPipelineTasks = { true, true, true, true, true, true, true, true, true };
 
 	cv::Mat depthMat = cv::Mat(KinectManager::HEIGHT, KinectManager::WIDTH, CV_32FC3);
-	cv::Mat rgbMat   = cv::Mat(KinectManager::HEIGHT, KinectManager::WIDTH, CV_32FC3);
+	cv::Mat rgbMat   = cv::Mat(720, 1280, CV_32FC3);
 
 	QOpenGLShaderProgram *mapProgram;
 	QOpenGLVertexArrayObject mapVAO;

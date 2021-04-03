@@ -32,6 +32,7 @@
 #ifdef APPLE
 #define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\data\\"
 #define CONFIG_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\config\\"
+#define ENABLE_RETINA_DISPLAY
 #else
 #define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\data\\"
 #define CONFIG_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\config\\"
@@ -231,13 +232,18 @@ MainGLWidget::MainGLWidget(QWidget *parent)
 	inputMode = conf->getValueI("input");
 
 	rcm = new RealsenseCameraManager();
-	rcm->init(conf->getValue("input_source"));
+	if (inputMode == 4) {
+        rcm->init(conf->getValue("input_source"));
+	} else {
+	    rcm->init();
+	}
 	//rs2::threshold_filter thresholdFilter2{};
 	//rcm->addFilter(thresholdFilter);
 
 	thresholdFilter = new ThresholdFilter(-10.0f, 10.0f, -10.0f, 10.0f, 0.5f, 3.0f);
-	rcm->addTask({ thresholdFilter, true });
-	//contourDetector = new ContourDetector(0.8f, 1.0f);
+	contourDetector = new ContourDetector(0.8f, 1.0f);
+    rcm->addTask({ thresholdFilter, true });
+    rcm->addTask({ contourDetector, true });
 	// K1NECT rework CollisionMapper
 	//collisionMapper = new CollisionMapper(contourDetector, &map, CM.color2camera);
 
@@ -266,8 +272,9 @@ void MainGLWidget::showEvent(QShowEvent *event) {
 
 MainGLWidget::~MainGLWidget()
 {
-	if (inputMode == 3) {
+	if (inputMode == 3 || inputMode == 4) {
 	    delete thresholdFilter;
+	    delete contourDetector;
 		delete rcm;
 	}
 }
@@ -400,7 +407,11 @@ void MainGLWidget::paintGL()
 	{
 		cameraProgram->setUniformValue("view", view);
 		cameraProgram->setUniformValue("projection", projection);
-
+#ifdef APPLE && ENABLE_RETINA_DISPLAY
+        cameraProgram->setUniformValue("pointSize", 1.5f);
+#else
+		cameraProgram->setUniformValue("pointSize", 3.0f);
+#endif
 		cameraVAO.bind();
 
 		glEnableVertexAttribArray(attrLocationVertex);
@@ -466,7 +477,10 @@ void MainGLWidget::timerEvent(QTimerEvent *)
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
-    qDebug() << duration.count();
+    //qDebug() << duration.count();
+
+    // save the frame in order to later be able to extract pictures
+    rgbMat = rs.cvColorFrame;
 
 	// Update frame id
 	emit updatedCurrentFrame(rs.points.get_frame_number());
@@ -522,7 +536,8 @@ void MainGLWidget::timerEvent(QTimerEvent *)
 		// texture data
 		cameraTexture->bind();
 		//glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rs.colorFrame.get_width(), rs.colorFrame.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, rs.colorFrame.get_data());
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rs.colorFrame.get_width(), rs.colorFrame.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, rs.colorFrame.get_data());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rs.cvColorFrame.cols, rs.cvColorFrame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, rs.cvColorFrame.data);
 		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rgbMat.cols, rgbMat.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, rgbMat.data);
 		//cameraTexture->setData(QOpenGLTexture::PixelFormat::RGB, QOpenGLTexture::PixelType::UInt8, rs.colorFrame.get_data());
 		cameraTexture->release();
@@ -649,14 +664,12 @@ void MainGLWidget::keyPressEvent(QKeyEvent *event) {
 	case Qt::Key::Key_U:
 	case Qt::Key::Key_I:
 	{
-		// K1NECT
-		return;
 		std::time_t result = std::time(nullptr);
 		std::stringstream path;
 		//path << "C:\\Users\\Kevin Bein\\Downloads\\" << result << ".png";
 		path << DATA_PATH << result << ".png";
 		if (event->key() == Qt::Key::Key_Z) {
-			CM.saveRGBImage(path.str());
+			//CM.saveRGBImage(path.str());
 		}
 		else {
 			cv::Mat image = rgbMat.clone();
@@ -935,7 +948,7 @@ void MainGLWidget::jumpToFrame(int frame) {
 
 void MainGLWidget::changeFpsTimer(int fpsMode) {
 	killTimer(cameraTimerId);
-	cameraTimerId = startTimer(fpsMode == 1 ? std::chrono::milliseconds(16) : std::chrono::milliseconds(8));
+	cameraTimerId = startTimer(fpsMode == 1 ? std::chrono::milliseconds(8) : std::chrono::milliseconds(16));
 }
 
 template <typename T>
