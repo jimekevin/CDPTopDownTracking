@@ -55,7 +55,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>debug\</OutDir>
     <IntDir>debug\</IntDir>
-    <TargetName>cdp_tests</TargetName>
+    <TargetName>TopDownTracking</TargetName>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -161,12 +161,12 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>%(AdditionalIncludeDirectories);Kinect20.lib;opencv_world410d.lib;qtmaind.lib;Qt53DCored.lib;Qt53DAnimationd.lib;Qt53DExtrasd.lib;Qt53DInputd.lib;Qt53DLogicd.lib;Qt53DRenderd.lib;Qt53DQuickd.lib;Qt53DQuickAnimationd.lib;Qt53DQuickExtrasd.lib;Qt53DQuickInputd.lib;Qt53DQuickRenderd.lib;Qt53DQuickScene2Dd.lib;Qt5Concurrentd.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Multimediad.lib;Qt5MultimediaWidgetsd.lib;Qt5Networkd.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5OpenGLExtensionsd.lib;Qt5Svgd.lib;Qt5UiToolsd.lib;Qt5WebChanneld.lib;Qt5WebSocketsd.lib;Qt5Widgetsd.lib;Qt5Qmld.lib;Qt5QuickWidgetsd.lib;Qt5Quickd.lib;Qt5Locationd.lib;Qt5QuickControls2d.lib;Qt5QuickTestd.lib;Qt5Positioningd.lib;boost_iostreams-vc140-mt.lib;boost_filesystem-vc140-mt.lib;realsense2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(QTDIR)\lib;$(SolutionDir)..\cdp\Externals\OpenCV\lib;C:\Projects\cdp\Externals\Kinect v2.0\lib;C:\dev\librealsense2\lib;C:\dev\vcpkg\installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;C:\Projects\cdp\Externals\OpenCV\lib;C:\Projects\cdp\Externals\Kinect v2.0\lib;C:\dev\librealsense2\lib;C:\dev\vcpkg\installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
-      <OutputFile>$(OutDir)\cdp_tests.exe</OutputFile>
+      <OutputFile>$(OutDir)\TopDownTracking.exe</OutputFile>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <SubSystem>Console</SubSystem>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -211,7 +211,6 @@
     </ClCompile>
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="OutputTextBrowser.cpp" />
-    <ClCompile Include="Pipeline.cpp" />
     <ClCompile Include="RealsenseCameraManager.cpp" />
     <ClCompile Include="RecordVideoPushButton.cpp" />
     <ClCompile Include="pipeline_tasks\ThresholdFilter.cpp" />
@@ -229,7 +228,6 @@
     <QtMoc Include="OutputTextBrowser.h" />
     <QtMoc Include="RecordVideoPushButton.h" />
     <ClInclude Include="Map.h" />
-    <ClInclude Include="Pipeline.h" />
     <ClInclude Include="RealsenseCameraManager.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>

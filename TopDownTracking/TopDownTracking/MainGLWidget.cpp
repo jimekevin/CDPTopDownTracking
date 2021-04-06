@@ -847,7 +847,7 @@ void MainGLWidget::recordVideo() {
 	if (!videoRecording) {
 		std::time_t result = std::time(nullptr);
 		std::stringstream path;
-		path << "C:\\Projects\\cdp_tests\\data\\" << result << (videoRecordingUseCompression ? "_c" : "_u");
+		path << "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\data\\" << result << (videoRecordingUseCompression ? "_c" : "_u");
 		videoRecordingOfs.open(path.str(), std::ofstream::binary | std::ofstream::app);
 
 		videoRecording = true;

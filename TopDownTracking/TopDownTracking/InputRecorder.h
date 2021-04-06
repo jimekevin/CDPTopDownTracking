@@ -1,7 +1,9 @@
 #ifndef INPUT_RECORDER_H
 #define INPUT_RECORDER_H
 
-//#include <Kinect.h>
+#ifndef APPLE
+
+#include <Kinect.h>
 
 #include <iostream>
 #include <fstream>
@@ -19,7 +21,7 @@
 class InputRecorder : public IMultiSourceFrameReader
 {
 public:
-	
+
 	struct RecorderInfo {
 		int depthWidth = 512;
 		int depthHeight = 424;
@@ -126,7 +128,7 @@ public:
 
 		IMPLEMENT_IUNKNOWN
 	};
-	
+
 
 	struct MultiSourceFrame : public IMultiSourceFrame {
 	private:
@@ -155,7 +157,7 @@ private:
 	boost::iostreams::filtering_stream<boost::iostreams::input_seekable> in;
 	int currentFrame = 0;
 	int nextFrame = -1;
-	
+
 	RecorderInfo recInfo;
 	int headerOffset = 0;
 
@@ -182,8 +184,10 @@ public:
 	HRESULT STDMETHODCALLTYPE get_IsPaused(BOOLEAN *isPaused) { return S_FALSE; }
 	HRESULT STDMETHODCALLTYPE put_IsPaused(BOOLEAN isPaused) { return S_FALSE; }
 	HRESULT STDMETHODCALLTYPE get_KinectSensor(IKinectSensor **sensor) { return S_FALSE; }
-	
+
 	IMPLEMENT_IUNKNOWN
 };
+
+#endif // APPLE
 
 #endif // INPUT_RECORDER_H

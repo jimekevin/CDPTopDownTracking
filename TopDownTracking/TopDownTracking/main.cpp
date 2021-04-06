@@ -33,7 +33,11 @@ int main(int argc, char **argv) try {
 	auto conf = Config::instance();
 	conf.parseSimple(CONFIG_DEFAULT_PATH);
 	auto inputMode = conf.getValueI("input");
+#ifdef APPLE
+	auto inputSource = conf.getValue("input_source_apple");
+#else
 	auto inputSource = conf.getValue("input_source");
+#endif
 	if (inputMode == 2) {
 #ifndef APPLE
 		if (KinectManager::instance().initializeFromFile(inputSource) != S_OK) {

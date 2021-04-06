@@ -3,7 +3,7 @@
 # ------------------------------------------------------
 
 TEMPLATE = app
-TARGET = cdp_tests
+TARGET = TopDownTracking
 DESTDIR = ./debug
 CONFIG += debug console
 DEFINES += _CONSOLE _UNICODE _ENABLE_EXTENDED_ALIGNED_STORAGE WIN64
@@ -19,4 +19,4 @@ MOC_DIR += .
 OBJECTS_DIR += debug
 UI_DIR += .
 RCC_DIR += .
-include(cdp_tests.pri)
+include(TopDownTracking.pri)

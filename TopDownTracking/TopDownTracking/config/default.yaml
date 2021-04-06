@@ -3,10 +3,11 @@
 # 3: realsense camera
 # 4: realsense recording
 input: 4
-#input_source: "C:\Projects\cdp_tests\data\1611710996_u_quitegood"
-#input_source: "C:\Projects\cdp_tests\data\1611863797_u_better"
+#input_source: "C:\Projects\CDPTopDownTracking\TopDownTracking\data\1611710996_u_quitegood"
+#input_source: "C:\Projects\CDPTopDownTracking\TopDownTracking\data\1611863797_u_better"
 #input_source: "../data/20210401_191338.bag"
-input_source: "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/20210401_191338.bag"
+input_source_apple: "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/20210401_191338.bag"
+input_source: "C:\Projects\CDPTopDownTracking\TopDownTracking\data\20210401_191338.bag"
 
 #task_thresholds_minX: -10.0f
 #task_thresholds_maxX: 10.0f

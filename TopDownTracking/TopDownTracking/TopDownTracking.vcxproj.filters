@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="filters">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="pipeline_tasks">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Config.cpp" />
+    <ClCompile Include="InputRecorder.cpp" />
+    <ClCompile Include="MainGLWidget.cpp" />
+    <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="OutputTextBrowser.cpp" />
+    <ClCompile Include="RealsenseCameraManager.cpp" />
+    <ClCompile Include="RecordVideoPushButton.cpp" />
+    <ClCompile Include="KinectManager_Windows.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="pipeline_tasks\ThresholdFilter.cpp">
+      <Filter>pipeline_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="pipeline_tasks\CollisionMapper.cpp">
+      <Filter>pipeline_tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="pipeline_tasks\ContourDetector.cpp">
+      <Filter>pipeline_tasks</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="IMixedCameraManager.h" />
+    <ClInclude Include="InputRecorder.h" />
+    <ClInclude Include="Map.h" />
+    <ClInclude Include="RealsenseCameraManager.h" />
+    <ClInclude Include="KinectManager_Windows.h" />
+    <ClInclude Include="vertex.h" />
+    <ClInclude Include="pipeline_tasks\ThresholdFilter.h">
+      <Filter>pipeline_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="pipeline_tasks\CollisionMapper.h">
+      <Filter>pipeline_tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="pipeline_tasks\ContourDetector.h">
+      <Filter>pipeline_tasks</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="release\moc_predefs.h.cbt" />
+    <CustomBuild Include="debug\moc_predefs.h.cbt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\point_cloud.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\point_cloud.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\map_view.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\map_view.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="config\camera.json">
+      <Filter>config</Filter>
+    </None>
+    <None Include="config\default.yaml">
+      <Filter>config</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="MainGLWidget.h" />
+    <QtMoc Include="MainWindow.h" />
+    <QtMoc Include="OutputTextBrowser.h" />
+    <QtMoc Include="RecordVideoPushButton.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="resources.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="main_window.ui" />
+  </ItemGroup>
+</Project>
