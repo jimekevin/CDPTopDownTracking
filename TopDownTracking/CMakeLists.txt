@@ -24,7 +24,7 @@ find_package(realsense2 CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(OpenMP REQUIRED)
 
-set(SOURCES
+set(SOURCES_TDT
         ${PROJECT_SOURCE_DIR}/TopDownTracking/Config.cpp
         #${PROJECT_SOURCE_DIR}/TopDownTracking/KinectManager_MacOS.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/MainGLWidget.cpp
@@ -37,10 +37,8 @@ set(SOURCES
         ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks/ContourDetector.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/main.cpp
         ${PROJECT_SOURCE_DIR}/TopDownTracking/CVTask.cpp)
-
-add_executable(TopDownTracking ${SOURCES})
-
-include_directories(
+add_executable(TopDownTracking ${SOURCES_TDT})
+target_include_directories(TopDownTracking PUBLIC
         #${PROJECT_SOURCE_DIR}/TopDownTracking/glad/include
         ${GLFW3_INCLUDE_DIRS}
         ${flextGL_INCLUDE_DIRS}
@@ -51,8 +49,8 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/TopDownTracking/config
         ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks
         ${PROJECT_SOURCE_DIR}/TopDownTracking/shaders
+        ${PROJECT_SOURCE_DIR}/TopDownTracking
         )
-
 target_link_libraries(TopDownTracking
         ${OpenCV_LIBS}
         ${OPENGL_LIBRARIES}
@@ -60,6 +58,38 @@ target_link_libraries(TopDownTracking
         #${FREENECT_LIBRARIES}
         #${freenect2_LIBRARIES}
         Qt5::Core Qt5::Gui Qt5::Widgets
+        realsense2::fw realsense2::realsense2 realsense2::realsense-file
+        OpenMP::OpenMP_CXX
+        )
+
+set(SOURCES_CVTESTS
+        ${PROJECT_SOURCE_DIR}/third-party/imgui/imgui.cpp
+        ${PROJECT_SOURCE_DIR}/third-party/imgui/imgui_draw.cpp
+        ${PROJECT_SOURCE_DIR}/third-party/imgui/imgui_impl_glfw.cpp
+        ${PROJECT_SOURCE_DIR}/CVTests/CVTests.cpp
+        ${PROJECT_SOURCE_DIR}/CVTests/example.hpp
+        ${PROJECT_SOURCE_DIR}/CVTests/RealsenseCameraManager.cpp
+        ${PROJECT_SOURCE_DIR}/CVTests/main.cpp)
+add_executable(CVTests ${SOURCES_CVTESTS})
+set_property(TARGET CVTests PROPERTY CXX_STANDARD 17)
+target_include_directories(CVTests PUBLIC
+        #${PROJECT_SOURCE_DIR}/TopDownTracking/glad/include
+        ${GLFW3_INCLUDE_DIRS}
+        #${flextGL_INCLUDE_DIRS}
+        #/usr/local/Cellar/libfreenect/0.6.1/include/libfreenect
+        #${freenect2_INCLUDE_DIR}
+        #/usr/local/opt/qt/include
+        ${PROJECT_SOURCE_DIR}/third-party/imgui
+        ${PROJECT_SOURCE_DIR}/CVTests
+        )
+target_link_libraries(CVTests
+        ${OpenCV_LIBS}
+        ${OPENGL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        glfw
+        #${FREENECT_LIBRARIES}
+        #${freenect2_LIBRARIES}
+        #Qt5::Core Qt5::Gui Qt5::Widgets
         realsense2::fw realsense2::realsense2 realsense2::realsense-file
         OpenMP::OpenMP_CXX
         )
