@@ -890,8 +890,8 @@ void MainGLWidget::loadSettings() {
 	auto taskThresholdsMaxY = conf->getValueF("task_thresholds_maxY");
 	auto taskThresholdsMinZ = conf->getValueF("task_thresholds_minZ");
 	auto taskThresholdsMaxZ = conf->getValueF("task_thresholds_maxZ");
-	//auto taskCountourDetectorThreshold1 = conf->getValueF("task_countour_detector_threshold1");
-	//auto taskCountourDetectorThreshold2 = conf->getValueF("task_countour_detector_threshold2");
+	auto taskCountourDetectorThreshold1 = conf->getValueF("task_countour_detector_threshold1");
+	auto taskCountourDetectorThreshold2 = conf->getValueF("task_countour_detector_threshold2");
 
 	thresholdFilter->minX = taskThresholdsMinX != INFINITY ? taskThresholdsMinX : thresholdFilter->minX;
 	thresholdFilter->maxX = taskThresholdsMaxX != INFINITY ? taskThresholdsMaxX : thresholdFilter->maxX;
@@ -899,8 +899,8 @@ void MainGLWidget::loadSettings() {
 	thresholdFilter->maxY = taskThresholdsMaxY != INFINITY ? taskThresholdsMaxY : thresholdFilter->maxY;
 	thresholdFilter->minZ = taskThresholdsMinZ != INFINITY ? taskThresholdsMinZ : thresholdFilter->minZ;
 	thresholdFilter->maxZ = taskThresholdsMaxZ != INFINITY ? taskThresholdsMaxZ : thresholdFilter->maxZ;
-	//contourDetector->threshold1 = taskCountourDetectorThreshold1 != INFINITY ? taskCountourDetectorThreshold1 : contourDetector->threshold1;
-	//contourDetector->threshold2 = taskCountourDetectorThreshold2 != INFINITY ? taskCountourDetectorThreshold2 : contourDetector->threshold2;
+	contourDetector->threshold1 = taskCountourDetectorThreshold1 != INFINITY ? taskCountourDetectorThreshold1 : contourDetector->threshold1;
+	contourDetector->threshold2 = taskCountourDetectorThreshold2 != INFINITY ? taskCountourDetectorThreshold2 : contourDetector->threshold2;
 
 	//emit sliderValuesChanged();
 }
@@ -912,8 +912,8 @@ void MainGLWidget::resetSettings() {
 	thresholdFilter->maxY = 10.0f;
 	thresholdFilter->minZ = -10.0f;
 	thresholdFilter->maxZ = 10.0f;
-	//contourDetector->threshold1 = 0.8f;
-	//contourDetector->threshold2 = 1.0f;
+	contourDetector->threshold1 = 0.8f;
+	contourDetector->threshold2 = 1.0f;
 
 	//emit sliderValuesChanged();
 }

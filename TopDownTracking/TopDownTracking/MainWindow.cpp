@@ -56,8 +56,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent), ui(new Ui::MainWindow
 	//MAKE_SLIDER_CONNECTION(maxZ, "Max Z: ", thresholdMaxZSlider, thresholdFilter, thresholdMaxZLabel, 10.0f);
 
 	// Contour
-	//MAKE_SLIDER_CONNECTION(threshold1, "Contour 1: ", contourThreshold1Slider, contourDetector, contourThreshold1Label, 100.0f);
-	//MAKE_SLIDER_CONNECTION(threshold2, "Contour 2: ", contourThreshold2Slider, contourDetector, contourThreshold2Label, 100.0f);
+	MAKE_SLIDER_CONNECTION(threshold1, "Contour 1: ", contourThreshold1Slider, contourDetector, contourThreshold1Label, 100.0f);
+	MAKE_SLIDER_CONNECTION(threshold2, "Contour 2: ", contourThreshold2Slider, contourDetector, contourThreshold2Label, 100.0f);
 
 	connect(ui->mainGLWidget, &MainGLWidget::sliderValuesChanged, [this]() {
 		//ui->thresholdMinXSlider->setValue(ui->mainGLWidget->thresholdFilter->minX * 10.0f);
@@ -66,8 +66,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent), ui(new Ui::MainWindow
 		//ui->thresholdMaxYSlider->setValue(ui->mainGLWidget->thresholdFilter->maxY * 10.0f);
 		//ui->thresholdMinZSlider->setValue(ui->mainGLWidget->thresholdFilter->minZ * 10.0f);
 		//ui->thresholdMaxZSlider->setValue(ui->mainGLWidget->thresholdFilter->maxZ * 10.0f);
-		//ui->contourThreshold1Slider->setValue(ui->mainGLWidget->contourDetector->threshold1 * 100.0f);
-		//ui->contourThreshold2Slider->setValue(ui->mainGLWidget->contourDetector->threshold2 * 100.0f);
+		ui->contourThreshold1Slider->setValue(ui->mainGLWidget->contourDetector->threshold1 * 100.0f);
+		ui->contourThreshold2Slider->setValue(ui->mainGLWidget->contourDetector->threshold2 * 100.0f);
 	});
 #undef MAKE_SLIDER_CONNECTION
 

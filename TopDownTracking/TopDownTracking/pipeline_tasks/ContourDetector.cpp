@@ -8,8 +8,10 @@ ContourDetector::ContourDetector(float threshold1, float threshold2)
 
 void ContourDetector::process(cv::InputOutputArray depthMat, cv::InputOutputArray colorMat) {
 	int type;
-	cv::Mat image(colorMat.getMatRef());
+	cv::Mat image(colorMat.getMat());
 
+	auto cccc = colorMat.type(); // 0
+	auto dddd = colorMat.channels(); // 3
 /*
 	cv::Mat mask;
 	cv::inRange(image, cv::Scalar(0.0f, 0.0f, 0.0f), cv::Scalar(0.0f, 0.0f, 0.0f), mask);
@@ -19,13 +21,13 @@ void ContourDetector::process(cv::InputOutputArray depthMat, cv::InputOutputArra
 	//image.convertTo(colorMat, CV_32FC3); cv::cvtColor(colorMat, colorMat, cv::COLOR_GRAY2RGB); return;
 
 	cv::cvtColor(image, image, cv::COLOR_RGB2GRAY);
-	type = image.type();
-	cv::threshold(image, image, threshold1, 1.0f, cv::THRESH_BINARY);
-	type = image.type();
-	image.convertTo(image, CV_8UC1);
-	type = image.type();
-
-	image.convertTo(colorMat, CV_8UC3); cv::cvtColor(colorMat, colorMat, cv::COLOR_GRAY2RGB); return;
+	cv::threshold(image, image, threshold1 * 255, 255.0f, cv::THRESH_BINARY);
+	//cv::cvtColor(image, colorMat, cv::COLOR_GRAY2RGB);
+	auto cccc1 = colorMat.type(); // 16
+	auto dddd1 = colorMat.channels(); // 1
+	auto ddd33d1 = image.channels(); // 1
+	//return;
+	//image.convertTo(colorMat, CV_8UC3); cv::cvtColor(colorMat, colorMat, cv::COLOR_GRAY2BGR); return;
 	//image.convertTo(colorMat, CV_32FC3); cv::cvtColor(colorMat, colorMat, cv::COLOR_GRAY2RGB); return;
 
 	cv::Mat element = cv::getStructuringElement(cv::MorphShapes::MORPH_RECT, cv::Size(5, 5), cv::Point(-1, -1));
@@ -33,6 +35,8 @@ void ContourDetector::process(cv::InputOutputArray depthMat, cv::InputOutputArra
 	cv::morphologyEx(image, image, cv::MorphTypes::MORPH_CLOSE, element);
 	// no effect for the whole range 0.0f to 1.0f
 	//cv::threshold(image, image, threshold2, 1.0f, cv::THRESH_BINARY_INV);
+
+	cv::cvtColor(image, colorMat, cv::COLOR_GRAY2RGB); return;
 
 	//image.convertTo(colorMat, CV_32FC3); cv::cvtColor(colorMat, colorMat, cv::COLOR_GRAY2RGB); return;
 
