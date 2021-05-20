@@ -8,7 +8,7 @@ add_definitions(-DAPPLE)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(Qt5_DIR /usr/local/opt/qt/lib/cmake/Qt5)
+#set(Qt5_DIR /usr/local/opt/qt/lib/cmake/Qt5)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -19,7 +19,7 @@ find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 #find_package(libfreenect REQUIRED)
 #find_package(freenect2 REQUIRED PATHS /usr/local/Cellar/libfreenect2/0.2.0/lib)
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
+#find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(realsense2 CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(OpenMP REQUIRED)
@@ -57,7 +57,7 @@ target_link_libraries(TopDownTracking
         ${CMAKE_THREAD_LIBS_INIT}
         #${FREENECT_LIBRARIES}
         #${freenect2_LIBRARIES}
-        Qt5::Core Qt5::Gui Qt5::Widgets
+        #Qt5::Core Qt5::Gui Qt5::Widgets
         realsense2::fw realsense2::realsense2 realsense2::realsense-file
         OpenMP::OpenMP_CXX
         )
