@@ -13,26 +13,57 @@
 
 #include "RealsenseCameraManager.h"
 
+#ifdef APPLE
+#define DATA_PATH "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/"
+#else
+#define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\data\\"
+#endif
+
+#define RECORDING_BT_BS DATA_PATH"20210421_193350_bt_bs.bag"
+#define RECORDING_BT_WS DATA_PATH"20210421_193310_bt_ws.bag"
+#define RECORDING_WT_WS DATA_PATH"20210421_193129_wt_ws.bag"
+#define RECORDING_WT_BS DATA_PATH"20210421_193054_wt_bs.bag"
+
+enum RECORDING { NONE=-1, WT_BS, WT_WS, BT_BS, BT_WS, COUNT };
+inline const std::string getRecording(int id) {
+    RECORDING rec = static_cast<RECORDING>(id);
+    switch (rec) {
+        case WT_BS: return RECORDING_WT_BS;
+        case WT_WS: return RECORDING_WT_BS;
+        case BT_BS: return RECORDING_BT_BS;
+        case BT_WS: return RECORDING_BT_WS;
+        default:    return "";
+    }
+}
+
 void render_slider(rect location, float& clipping_dist);
 void remove_background(rs2::video_frame& other, const rs2::depth_frame& depth_frame, float depth_scale, float clipping_dist);
 float get_depth_scale(rs2::device dev);
 rs2_stream find_stream_to_align(const std::vector<rs2::stream_profile>& streams);
 bool profile_changed(const std::vector<rs2::stream_profile>& current, const std::vector<rs2::stream_profile>& prev);
 
+int activeRecording = static_cast<int>(RECORDING::WT_WS);
+int lastRecording = activeRecording;
+
 int main(int argc, char * argv[]) try
 {
 	// Create and initialize GUI related objects
-	window app(1280, 720, "RealSense Align (Advanced) Example"); // Simple window handling
+	window app(1280, 720, "Top Down Tracking - CVTests (Kevin Bein)"); // Simple window handling
 	ImGui_ImplGlfw_Init(app, false);      // ImGui library intializition
 	rs2::colorizer c;                     // Helper to colorize depth images
 	texture renderer;                     // Helper for renderig images
 
-	auto rcm = new RealsenseCameraManager();
+    auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
 
 	std::chrono::steady_clock::time_point fpsLast;
 	long long fps;
 	while (app) // Application still alive?
 	{
+	    if (activeRecording != lastRecording) {
+	        delete rcm;
+            rcm = new RealsenseCameraManager(getRecording(activeRecording));
+	        lastRecording = activeRecording;
+	    }
 
 		fpsLast = std::chrono::high_resolution_clock::now();
 
@@ -45,6 +76,13 @@ int main(int argc, char * argv[]) try
 		// Taking dimensions of the window for rendering purposes
 		float w = static_cast<float>(app.width());
 		float h = static_cast<float>(app.height());
+#ifdef APPLE
+        auto w_video = w * 2;
+        auto h_video = h * 2;
+#else
+        auto w_video = w;
+        auto h_video = h;
+#endif
 
 #if RENDER_RS2
 		rs2::video_frame other_frame = rcm->getRs2ColorFrame();
@@ -56,7 +94,7 @@ int main(int argc, char * argv[]) try
 
 		// At this point, "other_frame" is an altered frame, stripped form its background
 		// Calculating the position to place the frame in the window
-		rect altered_other_frame_rect{ 0, 0, w, h };
+		rect altered_other_frame_rect{ 0, 0, w_video, h_video };
 #if RENDER_RS2
 		altered_other_frame_rect = altered_other_frame_rect.adjust_ratio({ static_cast<float>(other_frame.get_width()),static_cast<float>(other_frame.get_height()) });
 #else
@@ -68,10 +106,10 @@ int main(int argc, char * argv[]) try
 
 		// The example also renders the depth frame, as a picture-in-picture
 		// Calculating the position to place the depth frame in the window
-		rect pip_stream{ 0, 0, w / 5, h / 5 };
+		rect pip_stream{ 0, 0, w_video / 5, h_video / 5 };
 		pip_stream = pip_stream.adjust_ratio({ static_cast<float>(aligned_depth_frame.get_width()),static_cast<float>(aligned_depth_frame.get_height()) });
-		pip_stream.x = altered_other_frame_rect.x + altered_other_frame_rect.w - pip_stream.w - (std::max(w, h) / 25);
-		pip_stream.y = altered_other_frame_rect.y + (std::max(w, h) / 25);
+		pip_stream.x = altered_other_frame_rect.x + altered_other_frame_rect.w - pip_stream.w - (std::max(w_video, h_video) / 25);
+		pip_stream.y = altered_other_frame_rect.y + (std::max(w_video, h_video) / 25);
 
 		// Render depth (as picture in pipcture)
 		renderer.upload(c.process(aligned_depth_frame));
@@ -79,9 +117,24 @@ int main(int argc, char * argv[]) try
 
 		// Using ImGui library to provide a slide controller to select the depth clipping distance
 		ImGui_ImplGlfw_NewFrame(1);
-		float depth_clipping_distance = 2.f;
-		render_slider({ 5.f, 0, w, h }, depth_clipping_distance);
-		ImGui::Render();
+		//float depth_clipping_distance = 2.f;
+		//render_slider({ 5.f, 0, w, h }, depth_clipping_distance);
+
+		// Print controls
+        ImGui::Begin("Controls");
+        ImGui::Checkbox("Stop playback", &rcm->prop_stopped_frame);
+        ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
+        ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
+        ImGui::Text(rcm->getFrameStepLabel());
+        ImGui::SliderFloat("Z Culling Back", &rcm->prop_z_culling_back, -1.0f, 1.0f);
+        ImGui::SliderFloat("Z Culling Front", &rcm->prop_z_culling_front, -1.0f, 1.0f);
+        ImGui::SliderIntWithSteps("Gaussian Kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
+        ImGui::SliderFloat("Threshold", &rcm->prop_threshold, 0.0f, 1.0f);
+        ImGui::SliderFloat("Threshold Max", &rcm->prop_threshold_max, 0.0f, 255.0f);
+        ImGui::SliderIntWithSteps("Morph kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
+        ImGui::End();
+
+        ImGui::Render();
 
 		// FPS
 		auto fpsNow = std::chrono::high_resolution_clock::now();
@@ -89,8 +142,7 @@ int main(int argc, char * argv[]) try
 		if (duration > 0) {
 			fps = CLOCKS_PER_SEC / duration;
 		}
-		std::cout << "FPS: " << fps << "\r";
-
+		//std::cout << "FPS: " << fps << "\r";
 	}
 	return EXIT_SUCCESS;
 }
