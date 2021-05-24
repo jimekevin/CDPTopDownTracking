@@ -673,7 +673,6 @@ RealsenseCameraManager::~RealsenseCameraManager()
 
 bool RealsenseCameraManager::init() {
 	pipe = std::make_shared<rs2::pipeline>();
-	rs2::config cfg;
 	cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
 	//cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
 	cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
@@ -682,7 +681,6 @@ bool RealsenseCameraManager::init() {
 
 bool RealsenseCameraManager::init(std::string filePath) {
 	pipe = std::make_shared<rs2::pipeline>();
-	rs2::config cfg;
 	cfg.enable_device_from_file(filePath);
 	//cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
 	//cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
