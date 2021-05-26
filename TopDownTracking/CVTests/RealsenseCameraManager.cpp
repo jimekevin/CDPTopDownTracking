@@ -495,7 +495,7 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
             { 100.0f, -100.0f, 0.0f },
             { -100.0f, -100.0f, 0.0f }
     };
-    const auto to = cv::Mat(maxHomographySamples, 3, CV_64F, &from_data);
+    const auto to = cv::Mat(maxHomographySamples, 3, CV_64F, &to_data);
     std::cout << "Callibration: from=" << from << "\n";
     std::cout << "Callibration: to=" << to << "\n";
     H = cv::findHomography(from, to);
@@ -524,10 +524,11 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     std::cout << "Callibration[solvePnP]: R=" << R << "\n";
     cv::hconcat(R, tvec, RT);
     std::cout << "Callibration[solvePnP]: RT=" << RT << "\n";
-    H_zrow[0] = R.at<double>(2, 0);
-    H_zrow[1] = R.at<double>(2, 1);
-    H_zrow[2] = R.at<double>(2, 2);
-    H_zrow[3] = R.at<double>(2, 3);
+    //
+    // H_zrow[0] = R.at<double>(2, 0);
+    //H_zrow[1] = R.at<double>(2, 1);
+    //H_zrow[2] = R.at<double>(2, 2);
+    //H_zrow[3] = R.at<double>(2, 3);
 
     // Get the center point of the new plane and add some small value. This is the threshold, everything
     // that is below that, i.e. under the table will be ignored
