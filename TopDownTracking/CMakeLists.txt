@@ -10,8 +10,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 #set(Qt5_DIR /usr/local/opt/qt/lib/cmake/Qt5)
 # Instruct CMake to run moc automatically when needed.
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
+#set(CMAKE_AUTOMOC ON)
+#set(CMAKE_AUTOUIC ON)
 
 find_package(GLFW3 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -44,7 +44,7 @@ target_include_directories(TopDownTracking PUBLIC
         ${flextGL_INCLUDE_DIRS}
         #/usr/local/Cellar/libfreenect/0.6.1/include/libfreenect
         #${freenect2_INCLUDE_DIR}
-        /usr/local/opt/qt/include
+        #/usr/local/opt/qt/include
         ${PROJECT_SOURCE_DIR}/TopDownTracking
         ${PROJECT_SOURCE_DIR}/TopDownTracking/config
         ${PROJECT_SOURCE_DIR}/TopDownTracking/pipeline_tasks
