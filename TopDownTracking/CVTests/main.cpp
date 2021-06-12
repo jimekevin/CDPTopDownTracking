@@ -13,14 +13,16 @@
 
 #ifdef APPLE
 #define DATA_PATH "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/"
+#define SCREENSHOT_PATH "/Users/lilith/Desktop/"
 #else
 #define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\data\\"
+#define SCREENSHOT_PATH "C:\\Users\\Kevin Bein\\Desktop\\"
 #endif
 
 #define RECORDING_BT_BS DATA_PATH"20210421_193350_bt_bs.bag"
 #define RECORDING_BT_WS DATA_PATH"20210421_193310_bt_ws.bag"
 #define RECORDING_WT_WS DATA_PATH"20210421_193129_wt_ws.bag"
-#define RECORDING_WT_BS DATA_PATH"20210421_193054_wt_bs.bag"
+#define RECORDING_WT_BS DATA_PATH"20210421_193054_wt_bs.bag" // Removed for now (30.05.2021)
 
 enum RECORDING { NONE=-1, WT_BS, WT_WS, BT_BS, BT_WS, COUNT };
 inline const std::string getRecording(int id) {
@@ -47,6 +49,7 @@ int main(int, char**) try
 
     auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
 
+    double fps;
 	std::chrono::steady_clock::time_point fpsLast;
 	while (app) // Application still alive?
 	{
@@ -111,27 +114,37 @@ int main(int, char**) try
 
 		// Print controls
         ImGui::Begin("Controls");
+
+        auto fpsNow = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(fpsNow - fpsLast).count();
+        if (duration > 0) {
+            fps = CLOCKS_PER_SEC / duration;
+        }
+        std::stringstream fpsOut;
+        fpsOut << "FPS: " << fps;
+        ImGui::Text("%s", fpsOut.str().c_str());
+        
         ImGui::Checkbox("Stop playback", &rcm->prop_stopped_frame);
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
         ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
-        ImGui::Text(rcm->getFrameStepLabel());
+        //ImGui::Text(rcm->getFrameStepLabel());
         ImGui::SliderFloat("Z Culling Back", &rcm->prop_z_culling_back, -1.0f, 1.0f);
         ImGui::SliderFloat("Z Culling Front", &rcm->prop_z_culling_front, -1.0f, 1.0f);
         ImGui::SliderIntWithSteps("Gaussian Kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
         ImGui::SliderFloat("Threshold", &rcm->prop_threshold, 0.0f, 1.0f);
         ImGui::SliderFloat("Threshold Max", &rcm->prop_threshold_max, 0.0f, 255.0f);
         ImGui::SliderIntWithSteps("Morph kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
+        auto screenshotFlag = rcm->prop_save_screenshot ? RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY_SAVE : RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY;
+        if (ImGui::Button("S 0")) rcm->screenshot(0, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 1")) rcm->screenshot(1, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 2")) rcm->screenshot(2, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 3")) rcm->screenshot(3, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 4")) rcm->screenshot(4, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 5")) rcm->screenshot(5, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        ImGui::Checkbox("Save", &rcm->prop_save_screenshot);
         ImGui::End();
 
         ImGui::Render();
-
-		// FPS
-		auto fpsNow = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(fpsNow - fpsLast).count();
-		//if (duration > 0) {
-		//	fps = CLOCKS_PER_SEC / duration;
-		//}
-		//std::cout << "FPS: " << fps << "\r";
 	}
 	return EXIT_SUCCESS;
 }

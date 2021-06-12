@@ -32,7 +32,15 @@ public:
 	SCANNERLIB_API cv::Mat getCvDepthFrame();
 	SCANNERLIB_API void applyThreshold(rs2::video_frame& other_frame, rs2::depth_frame& depth_frame, unsigned char color);
 
+    enum SCREENSHOT_FLAGS {
+        DISPLAY = 1,
+        SAVE = 2,
+        DISPLAY_SAVE = 3,
+    };
+    SCANNERLIB_API void screenshot(int step, SCREENSHOT_FLAGS flags, std::string screenshotPath);
+
     const char *getFrameStepLabel();
+    const char *getFrameStepLabel(int step);
 
 private:
     rs2::config cfg;
@@ -55,7 +63,7 @@ private:
 	rs2::temporal_filter temp_filter;
 
     typedef struct Cluster {
-        cv::Rect rect;
+        cv::RotatedRect rect;
         cv::Point centroid;
         //bool assigned = false;
         int disappeared = 0;
@@ -69,7 +77,7 @@ private:
         void registerCluster(Cluster cluster);
         void deregisterCluster(int clusterId);
     public:
-        void updateClusters(const std::vector<cv::Rect> &rects);
+        void updateClusters(const std::vector<cv::RotatedRect> &rects);
         const Clusters& getClusters();
     };
     MultiTracker multiTracker;
@@ -94,6 +102,15 @@ private:
 	static rs2_stream find_stream_to_align(const std::vector<rs2::stream_profile>& streams);
 	static bool profile_changed(const std::vector<rs2::stream_profile>& current, const std::vector<rs2::stream_profile>& prev);
 
+	// Intermediate frames
+    cv::Mat frame_cvColorFrame;
+    cv::Mat frame_thresholdedColorFrame;
+    cv::Mat frame_contourColorFrame;
+    cv::Mat frame_greyMat;
+    cv::Mat frame_blurMat;
+    cv::Mat frame_threshMat;
+    cv::Mat frame_morphMat;
+
   // Properties
 public:
     bool prop_stopped_frame = false;
@@ -101,9 +118,10 @@ public:
     float prop_z_culling_back = 0.0f;
     float prop_z_culling_front = 0.25f;
 	int prop_gaussian_kernel = 5;
-	float prop_threshold = 0.4f;
+	float prop_threshold = 0.6f;
 	float prop_threshold_max = 255.0f;
-	int prop_morph_kernel = 5;
+	int prop_morph_kernel = 25;
+    bool prop_save_screenshot = false;
 
 	// TODO: Obsolete
 	/*

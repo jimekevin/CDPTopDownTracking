@@ -5,6 +5,7 @@
 
 #include <opencv2/tracking.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/highgui.hpp>
 
 //
 // References
@@ -55,7 +56,7 @@ void RealsenseCameraManager::MultiTracker::deregisterCluster(int clusterId) {
     clusters.erase(clusterId);
 }
 
-void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::Rect> &rects) {
+void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::RotatedRect> &rects) {
     if (rects.size() == 0) {
         for (auto it = clusters.begin(), next_it = it; it != clusters.cend(); it = next_it) {
             ++next_it;
@@ -70,11 +71,7 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
     // Store centroids
     std::vector<cv::Point> centroids(rects.size());
     for (auto& rect : rects) {
-        auto centroid = cv::Point(
-                (rect.tl().x + rect.br().x ) / 2.0f,
-                (rect.tl().y + rect.br().y ) / 2.0f
-        );
-        centroids.emplace_back(centroid);
+        centroids.emplace_back(rect.center);
     }
 
     // Register all new clusters
@@ -179,6 +176,9 @@ bool RealsenseCameraManager::processFrames() {
 		return false;
 	}
 
+    auto width = other_frame.get_width();
+    auto height = other_frame.get_height();
+
 	// =========================================
 	// 2. Filters (spatial then temporal) https://dev.intelrealsense.com/docs/depth-post-processing
 	// =========================================
@@ -253,11 +253,14 @@ bool RealsenseCameraManager::processFrames() {
 	cv::morphologyEx(threshMat, morphMat, cv::MorphTypes::MORPH_OPEN, morphKernel);
 	cv::morphologyEx(morphMat, morphMat, cv::MorphTypes::MORPH_CLOSE, morphKernel);
 
+	// Cut out border so findContours does not match and merges it with the actual shapes
+    cv::rectangle(morphMat, cv::Point(0, 0), cv::Point (width, height), cv::Scalar(255, 255, 255), 50);
+
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<std::vector<cv::Point>> hull;
 	std::vector<double> areas;
 	std::vector<double> centroids;
-	std::vector<cv::Rect> boundingBoxes;
+	std::vector<std::vector<cv::Point2f>> boundingBoxes;
 	std::vector<cv::Vec4i> hierarchy;
 	std::vector<cv::Scalar> colors = {
 		cv::Scalar(1.0f, 0.0f, 0.0f) * 255, //, 1.0f),
@@ -284,58 +287,124 @@ bool RealsenseCameraManager::processFrames() {
         if (area > maxAreaSize || area < minAreaSize) {
             continue;
         }
-        boundingBoxes.emplace_back(cv::boundingRect(contours[i]));
-	}
 
-    // Draw contours
-    /*
-	for (int i = 0; i < contours.size(); i++) {
-		//if (contours[i].size() > 50) {
-		//	continue;
-		//}
-		if (areas[i] > maxAreaSize || areas[i] < minAreaSize) {
-			continue;
-		}
-		auto color = colors[i % colors.size()];
-		cv::drawContours(cvColorFrame, hull, i, color, cv::FILLED, 8);
-		cv::drawContours(cvColorFrame, contours, i, color, 2, 8, hierarchy, 0);
-		cv::rectangle(
-		        cvColorFrame,
-		        cv::Point(boundingBoxes[i].x, boundingBoxes[i].y),
-		        cv::Point(boundingBoxes[i].x + boundingBoxes[i].width, boundingBoxes[i].y + boundingBoxes[i].height),
-		        cv::Scalar(0, 0, 255)
-		);
-		std::stringstream label;
-		label << "Label: " << i;
-		cv::putText(cvColorFrame, label.str(), cv::Point(boundingBoxes[i].x, boundingBoxes[i].y), cv::FONT_HERSHEY_SIMPLEX, 1, color);
+        auto minRect = cv::minAreaRect(contours[i]);
+        std::vector<cv::Point2f> box(4);
+        minRect.points(box.data());
+        boundingBoxes.emplace_back(box);
 	}
-    */
 
     // =========================================
-    // 7. Segmentation Localization
+    // 7. Calculate approximate hand positions
+    // =========================================
+
+    std::vector<cv::RotatedRect> handBoxes;
+    for (auto& box : boundingBoxes) {
+        typedef cv::Point2f p2f;
+        typedef std::vector<p2f> rect;
+        typedef std::tuple<double, p2f, p2f, p2f, p2f> boxinfo;
+        std::vector<boxinfo> sideLengths{
+                { cv::norm(box[0] - box[1]), box[0], box[1], box[2], box[3] },
+                { cv::norm(box[1] - box[2]), box[1], box[2], box[3], box[0] },
+                { cv::norm(box[2] - box[3]), box[2], box[3], box[0], box[1] },
+                { cv::norm(box[3] - box[0]), box[3], box[0], box[1], box[2] }
+        };
+        std::sort(sideLengths.begin(), sideLengths.end(), [](const boxinfo &b1, const boxinfo &b2) {
+            double length1 = std::get<0>(b1);
+            double length2 = std::get<0>(b1);
+            return length1 < length2;
+        });
+
+        std::vector<std::tuple<rect, p2f, bool>> rects;
+        for (int j = 0; j < 2; j++) {
+            auto [length, x1, x2, x3, x4] = sideLengths[j];
+            auto v = x3 - x2; // direction
+            auto v_hat = v / cv::norm(v);
+            auto x3_new = x2 + (v_hat * length);
+            auto x4_new = x1 + (v_hat * length);
+            std::vector<p2f> rect{x1, x2, x3_new, x4_new};
+            auto center = static_cast<cv::Point2i>(x1 + ((x3_new - x1) / 2));
+            rects.emplace_back(std::make_tuple(rect, center, false));
+        }
+        auto imageCenterX = static_cast<int>(width / 2);
+        auto imageCenterY = static_cast<int>(height / 2);
+        auto imageCenter = cv::Point2f(imageCenterX, imageCenterY);
+
+        p2f r1 = std::get<1>(rects[0]);
+        p2f r2 = std::get<1>(rects[1]);
+        auto dist2center1 = cv::norm(imageCenter - r1);
+        auto dist2center2 = cv::norm(imageCenter - r2);
+        auto dist2vertEdge1 = cv::min(r1.x, width - r1.x);
+        auto dist2vertEdge2 = cv::min(r2.x, width - r2.x);
+        auto dist2horizEdge1 = cv::min(r1.y, height - r1.y);
+        auto dist2horizEdge2 = cv::min(r2.y, height - r2.y);
+
+        auto score1 = dist2center1 + (imageCenter.x - dist2vertEdge1) + (imageCenter.y - dist2horizEdge1);
+        auto score2 = dist2center2 + (imageCenter.x - dist2vertEdge2) + (imageCenter.y - dist2horizEdge2);
+        if (score1 < score2) {
+            // std::get<2>(rects[0]) = true;
+            auto rect = std::get<0>(rects[0]);
+            cv::RotatedRect rotatedRect(rect[0], rect[1], rect[2]);
+            handBoxes.emplace_back(rotatedRect);
+        } else {
+            // std::get<2>(rects[1]) = true;
+            auto rect = std::get<0>(rects[1]);
+            cv::RotatedRect rotatedRect(rect[0], rect[1], rect[2]);
+            handBoxes.emplace_back(rotatedRect);
+        }
+    }
+
+    // =========================================
+    // 8. Segmentation Localization
     // =========================================
 
     // Update Tracker
-    multiTracker.updateClusters(boundingBoxes);
+    //multiTracker.updateClusters(boundingBoxes);
+    multiTracker.updateClusters(handBoxes);
     auto trackedClusters = multiTracker.getClusters();
+
+
+    // =========================================
+    // 9. Drawing
+    // =========================================
+
+    // Draw Contours
+    for (int i = 0; i < contours.size(); i++) {
+        if (areas[i] < maxAreaSize && areas[i] > minAreaSize) {
+            auto color = colors[i % colors.size()];
+            cv::drawContours(cvColorFrame, contours, i, color, 2, 8, hierarchy, 0);
+        }
+    }
 
     // Draw tracked objects
     for (auto& [clusterId, cluster] : trackedClusters) {
-        cv::rectangle(
-                cvColorFrame,
-                cluster.rect.tl(),
-                cluster.rect.br(),
-                cv::Scalar(0, 0, 255)
-        );
+        std::vector<cv::Point2f> points(4);
+        cluster.rect.points(points.data());
+        std::vector<std::vector<cv::Point2i>> polylines{ { points[0], points[1], points[2], points[3] } };
+        cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 0.0f, 255.0f), 2, 8, 0);
         std::stringstream label;
         label << "Label: " << clusterId;
         auto color = colors[clusterId % colors.size()];
-        cv::putText(cvColorFrame, label.str(), cluster.rect.tl(), cv::FONT_HERSHEY_SIMPLEX, 1, color);
+        cv::putText(cvColorFrame, label.str(), cluster.rect.boundingRect().tl(), cv::FONT_HERSHEY_SIMPLEX, 1, color);
     }
 
+    // Draw hand boxes
+    for (const auto& handBox : handBoxes) {
+        std::vector<cv::Point2f> points(4);
+        handBox.points(points.data());
+        std::vector<std::vector<cv::Point2i>> polylines{ { points[0], points[1], points[2], points[3] } };
+        cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 255.0f, 255.0f), 2, 8, 0);
+    }
 
-	// =========================================
-	// 8. Write return values
+    // Draw calibration window
+    auto rw1 = (width / 2) - (m_cal_maxWidth / 2);
+    auto rw2 = (width / 2) + (m_cal_maxWidth / 2);
+    auto rh1 = (height / 2) - (m_cal_maxHeight / 2);
+    auto rh2 = (height / 2) + (m_cal_maxHeight / 2);
+    cv::rectangle(processedCvColorFrame, cv::Rect(cv::Point(rw1, rh1), cv::Size(m_cal_maxWidth, m_cal_maxHeight)), cv::Scalar(127,0,255));
+
+    // =========================================
+	// 10. Finalize
 	// =========================================
 
 	prevCvColorFrame = cvColorFrame;
@@ -362,31 +431,29 @@ bool RealsenseCameraManager::processFrames() {
 	processedRs2ColorFrame = other_frame;
 	processedRs2DepthFrame = aligned_filtered_depth_frame;
 
-    // =========================================
-    // 9. Paint debug information
-    // =========================================
-
-    // Draw calibration window
-    auto width = other_frame.get_width();
-    auto height = other_frame.get_height();
-    auto rw1 = (width / 2) - (m_cal_maxWidth / 2);
-    auto rw2 = (width / 2) + (m_cal_maxWidth / 2);
-    auto rh1 = (height / 2) - (m_cal_maxHeight / 2);
-    auto rh2 = (height / 2) + (m_cal_maxHeight / 2);
-    cv::rectangle(processedCvColorFrame, cv::Rect(cv::Point(rw1, rh1), cv::Size(m_cal_maxWidth, m_cal_maxHeight)), cv::Scalar(127,0,255));
-
+    // 10. Save frames in mats in case we want to display/save them later
+    frame_cvColorFrame = cvColorFrame;
+    frame_contourColorFrame = contourColorFrame;
+    frame_greyMat = greyMat;
+    frame_blurMat = blurMat;
+    frame_threshMat = threshMat;
+    frame_morphMat = morphMat;
 	return true;
 }
 
 const char* RealsenseCameraManager::getFrameStepLabel() {
-    switch (prop_frame_step) {
+    return getFrameStepLabel(prop_frame_step);
+}
+
+const char* RealsenseCameraManager::getFrameStepLabel(int step) {
+    switch (step) {
         default:
-        case 0: return "cvColorFrame";
-        case 1: return "contourColorFrame";
-        case 2: return "greyMat";
-        case 3: return "blurMat";
-        case 4: return "threshMat";
-        case 5: return "morphMat";
+        case 1: return "cvColorFrame";
+        case 2: return "contourColorFrame";
+        case 3: return "greyMat";
+        case 4: return "blurMat";
+        case 5: return "threshMat";
+        case 6: return "morphMat";
     }
 }
 
@@ -849,4 +916,33 @@ cv::Mat RealsenseCameraManager::convertDepthFrameToMetersMat(const rs2::depth_fr
 	dm.convertTo(dm, CV_64F);
 	dm = dm * f.get_units();
 	return dm;
+}
+
+void RealsenseCameraManager::screenshot(int step, SCREENSHOT_FLAGS flags, std::string screenshotPath) {
+    cv::Mat mat;
+    switch (step) {
+        default:
+        case 0: mat = frame_cvColorFrame; break;
+        case 1: mat = frame_contourColorFrame; break;
+        case 2: mat = frame_greyMat; break;
+        case 3: mat = frame_blurMat; break;
+        case 4: mat = frame_threshMat; break;
+        case 5: mat = frame_morphMat; break;
+    }
+
+    if (flags == SAVE || flags == DISPLAY_SAVE) {
+        std::stringstream imagePath;
+        auto time = std::time(nullptr);
+        imagePath << screenshotPath << time << ".png";
+        std::cout << "Saved screenshot of '" << getFrameStepLabel(step) << "' to '" << imagePath.str() << "'";
+        cv::imwrite(imagePath.str(), mat);
+    }
+
+    if (flags == DISPLAY || flags == DISPLAY_SAVE) {
+        std::stringstream windowName;
+        windowName << "Display '" << getFrameStepLabel(step) << "'";
+        cv::imshow(windowName.str(), mat);
+        cv::waitKey(0);
+        cv::destroyWindow(windowName.str());
+    }
 }
