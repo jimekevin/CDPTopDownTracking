@@ -6,13 +6,14 @@
 #include <opencv2/tracking.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
+#include <utility>
 
 //
 // References
 // - https://github.com/IntelRealSense/librealsense/issues/2634
 //
 
-RealsenseCameraManager::RealsenseCameraManager(std::string bagPath)
+RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
 {
     if (bagPath.length() == 0) {
         RealsenseCameraManager();
@@ -48,16 +49,16 @@ RealsenseCameraManager::RealsenseCameraManager()
 }
 
 void RealsenseCameraManager::MultiTracker::registerCluster(Cluster cluster) {
-    clusters[nextClusterId] = cluster;
+    clusters[nextClusterId] = std::move(cluster);
     nextClusterId++;
 }
 
-void RealsenseCameraManager::MultiTracker::deregisterCluster(int clusterId) {
-    clusters.erase(clusterId);
-}
+// void RealsenseCameraManager::MultiTracker::deregisterCluster(int clusterId) {
+//     clusters.erase(clusterId);
+// }
 
 void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::RotatedRect> &rects) {
-    if (rects.size() == 0) {
+    if (rects.empty()) {
         for (auto it = clusters.begin(), next_it = it; it != clusters.cend(); it = next_it) {
             ++next_it;
             it->second.disappeared += 1;
@@ -75,7 +76,7 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
     }
 
     // Register all new clusters
-    if (clusters.size() == 0) {
+    if (clusters.empty()) {
         for (int i = 0; i < rects.size(); ++i) {
             registerCluster(Cluster{ rects[i], centroids[i] });
         }
@@ -193,7 +194,6 @@ bool RealsenseCameraManager::processFrames() {
 
 	if (!isCalibrated) {
 		callibrate(other_frame, aligned_filtered_depth_frame);
-		std::cout << "Calibrated - clipping distance: " << clippingDistances.z.max << "\n";
 	}
 
 	// =========================================
@@ -208,7 +208,7 @@ bool RealsenseCameraManager::processFrames() {
 	// =========================================
 
 	cv::Mat cvDepthFrame, cvColorFrame;
-#pragma omp parallel for num_threads(2)
+#pragma omp parallel for num_threads(2) default(none) shared(cvDepthFrame, aligned_filtered_depth_frame, cvColorFrame, other_frame)
 	for (int i = 0; i < 2; ++i) {
 		if (i == 0) {
 			cvDepthFrame = convertDepthFrameToMetersMat(aligned_filtered_depth_frame);
@@ -224,7 +224,7 @@ bool RealsenseCameraManager::processFrames() {
 
 	if (prevCvColorFrame.cols == 0) {
 		prevCvColorFrame = cvColorFrame;
-		prevCvDepthFrame = cvDepthFrame;
+		// prevCvDepthFrame = cvDepthFrame;
 		return false;
 	}
 	cv::Mat contourColorFrame;
@@ -336,18 +336,18 @@ bool RealsenseCameraManager::processFrames() {
             auto center = static_cast<cv::Point2i>(x1 + ((x3_new - x1) / 2));
             rects.emplace_back(std::make_tuple(rect, center, false));
         }
-        auto imageCenterX = static_cast<int>(width / 2);
-        auto imageCenterY = static_cast<int>(height / 2);
+        auto imageCenterX = static_cast<float>(width) / 2.0f;
+        auto imageCenterY = static_cast<float>(height) / 2.0f;
         auto imageCenter = cv::Point2f(imageCenterX, imageCenterY);
 
         p2f r1 = std::get<1>(rects[0]);
         p2f r2 = std::get<1>(rects[1]);
         auto dist2center1 = cv::norm(imageCenter - r1);
         auto dist2center2 = cv::norm(imageCenter - r2);
-        auto dist2vertEdge1 = cv::min(r1.x, width - r1.x);
-        auto dist2vertEdge2 = cv::min(r2.x, width - r2.x);
-        auto dist2horizEdge1 = cv::min(r1.y, height - r1.y);
-        auto dist2horizEdge2 = cv::min(r2.y, height - r2.y);
+        auto dist2vertEdge1 = cv::min(r1.x, static_cast<float>(width) - r1.x);
+        auto dist2vertEdge2 = cv::min(r2.x, static_cast<float>(width) - r2.x);
+        auto dist2horizEdge1 = cv::min(r1.y, static_cast<float>(height) - r1.y);
+        auto dist2horizEdge2 = cv::min(r2.y, static_cast<float>(height) - r2.y);
 
         auto score1 = dist2center1 + (imageCenter.x - dist2vertEdge1) + (imageCenter.y - dist2horizEdge1);
         auto score2 = dist2center2 + (imageCenter.x - dist2vertEdge2) + (imageCenter.y - dist2horizEdge2);
@@ -367,14 +367,14 @@ bool RealsenseCameraManager::processFrames() {
             activeRect = rotatedRect2;
         }
 
-        for (const auto c : contours[bindex]) {
+        for (const auto& c : contours[bindex]) {
             if (pointInsideRotatedRect(c, activeRect)) {
                 finalContours[i].emplace_back(c);
                 std::cout << "is in contour (" << bindex << ")" << std::endl;
             }
         }
 
-        if (finalContours[i].size() > 0) {
+        if (!finalContours[i].empty()) {
             auto minRect = cv::minAreaRect(finalContours[i]);
             finalHandBoxes.emplace_back(minRect);
         }
@@ -427,7 +427,7 @@ bool RealsenseCameraManager::processFrames() {
     }
 
     // Draw final contours
-    std::cout << "finalContours: " << finalContours.size() << std::endl;
+    // std::cout << "finalContours: " << finalContours.size() << std::endl;
     for (const auto& finalContour : finalContours) {
         cv::polylines(cvColorFrame, finalContour, true, cv::Scalar(0.0f, 255.0f, 0.0f), 2, 8, 0);
     }
@@ -452,7 +452,7 @@ bool RealsenseCameraManager::processFrames() {
 	// =========================================
 
 	prevCvColorFrame = cvColorFrame;
-	prevCvDepthFrame = cvDepthFrame;
+	// prevCvDepthFrame = cvDepthFrame;
 
 	//processedCvColorFrame = cvColorFrame;
 	//processedCvColorFrame = contourColorFrame;
@@ -470,7 +470,7 @@ bool RealsenseCameraManager::processFrames() {
 	    case 4: processedCvColorFrame = threshMat; break;
 	    case 5: processedCvColorFrame = morphMat; break;
 	}
-	processedCvDepthFrame = cvDepthFrame;
+	// processedCvDepthFrame = cvDepthFrame;
 
 	processedRs2ColorFrame = other_frame;
 	processedRs2DepthFrame = aligned_filtered_depth_frame;
@@ -485,9 +485,13 @@ bool RealsenseCameraManager::processFrames() {
 	return true;
 }
 
-const char* RealsenseCameraManager::getFrameStepLabel() {
-    return getFrameStepLabel(prop_frame_step);
+cv::Mat RealsenseCameraManager::getCvColorFrame() {
+    return processedCvColorFrame;
 }
+
+// cv::Mat RealsenseCameraManager::getCvDepthFrame() {
+//     return processedCvDepthFrame;
+// }
 
 const char* RealsenseCameraManager::getFrameStepLabel(int step) {
     switch (step) {
@@ -501,11 +505,11 @@ const char* RealsenseCameraManager::getFrameStepLabel(int step) {
     }
 }
 
-inline double RealsenseCameraManager::shoelace(cv::Point2f p1, cv::Point2f p2, cv::Point2f p3) {
+inline double RealsenseCameraManager::shoelace(const cv::Point2f& p1, const cv::Point2f& p2, const cv::Point2f& p3) {
     return std::fabs(0.5 * (((p2.x - p1.x) * (p3.y - p1.y)) - ((p3.x - p1.x) * (p2.y - p1.y))));
 }
 
-inline bool RealsenseCameraManager::pointInsideRotatedRect(cv::Point2f point, cv::RotatedRect rotatedRect) {
+inline bool RealsenseCameraManager::pointInsideRotatedRect(const cv::Point2f& point, const cv::RotatedRect& rotatedRect) {
     cv::Point2f points[4];
     rotatedRect.points(points);
     const auto [rp1, rp2, rp3, rp4] = points;
@@ -521,8 +525,8 @@ inline bool RealsenseCameraManager::pointInsideRotatedRect(cv::Point2f point, cv
 }
 
 void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {
-	const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
-	uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(other_frame.get_data()));
+	auto p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
+	auto p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(other_frame.get_data()));
 
     int width = depth_frame.get_width();
     int height = depth_frame.get_height();
@@ -546,50 +550,25 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     A_samples.at<double>(0, 0) = static_cast<double>(rw1);
     A_samples.at<double>(0, 1) = static_cast<double>(rh1);
     A_samples.at<double>(0, 2) = 1.0f;
-    b_samples.at<double>(0) = depth_scale * p_depth_frame[rw1 + (rh1 * width)];
+    b_samples.at<double>(0) = depth_scale * static_cast<float>(p_depth_frame[rw1 + (rh1 * width)]);
 
     A_samples.at<double>(1, 0) = static_cast<double>(rw2);
     A_samples.at<double>(1, 1) = static_cast<double>(rh1);
     A_samples.at<double>(1, 2) = 1.0f;
-    b_samples.at<double>(1) = depth_scale * p_depth_frame[rw2 + (rh1 * width)];
+    b_samples.at<double>(1) = depth_scale * static_cast<float>(p_depth_frame[rw2 + (rh1 * width)]);
 
     A_samples.at<double>(2, 0) = static_cast<double>(rw2);
     A_samples.at<double>(2, 1) = static_cast<double>(rh2);
     A_samples.at<double>(2, 2) = 1.0f;
-    b_samples.at<double>(2) = depth_scale * p_depth_frame[rw2 + (rh2 * width)];
+    b_samples.at<double>(2) = depth_scale * static_cast<float>(p_depth_frame[rw2 + (rh2 * width)]);
 
     A_samples.at<double>(3, 0) = static_cast<double>(rw1);
     A_samples.at<double>(3, 1) = static_cast<double>(rh2);
     A_samples.at<double>(3, 2) = 1.0f;
-    b_samples.at<double>(3) = depth_scale * p_depth_frame[rw1 + (rh2 * width)];
+    b_samples.at<double>(3) = depth_scale * static_cast<float>(p_depth_frame[rw1 + (rh2 * width)]);
 
     std::cout << "Callibration: A_samples=" << A_samples << "\n";
     std::cout << "Callibration: b_samples=" << b_samples << "\n";
-    //auto samples_origin = cv::Mat(0, 3, CV_32F);
-    //auto samples_table = cv::Mat(0, 3, CV_32F);
-//#pragma omp parallel for schedule(dynamic)
-	/*for (int i = 0; i < m_cal_maxPoints; ++i) {
-        auto rw = distrw(gen);
-        auto rh = distrh(gen);
-        auto randomIndex = rw + (rh * width);
-        // Get the depth value of the current pixel
-        auto pixels_dist = depth_scale * p_depth_frame[randomIndex];
-//#pragma omp atomic
-        //totalDepth += pixels_distance;
-        maxDepth = std::max(maxDepth, pixels_dist);
-
-        //auto a = cv::Point3f(static_cast<float>(rw), static_cast<float>(rh), 1.0f);
-
-        //A_samples.push_back(cv::Mat());
-        //b_samples.push_back(cv::Mat({pixels_dist}));
-
-        A_samples.at<float>(i, 0) = static_cast<float>(rw);
-        A_samples.at<float>(i, 1) = static_cast<float>(rh);
-        A_samples.at<float>(i, 2) = 1.0f;
-        b_samples.at<float>(i) = pixels_dist;
-        //samples_origin.push_back(cv::Mat({static_cast<float>(rw), static_cast<float>(rh), 0.0f}));
-        //samples_table.push_back(cv::Mat({static_cast<float>(rw), static_cast<float>(rh), pixels_dist}));
-    }*/
 
     // Calculate fitted plane
 	cv::Mat fitted_plane;
@@ -601,14 +580,6 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
         auto a = fitted_plane.at<double>(0), b = fitted_plane.at<double>(1), c = fitted_plane.at<double>(2);
         return (a * x) + (b * y) + c;
     };
-    /*auto projected_plane = cv::Mat(m_cal_maxPoints, 3, CV_32F);
-    for (int i = 0; i < A_samples.rows; i++) {
-        auto x = A_samples.at<float>(i, 0);
-        auto y = A_samples.at<float>(i, 1);
-        projected_plane.at<float>(i, 0) = x;
-        projected_plane.at<float>(i, 1) = y;
-        projected_plane.at<float>(i, 1) = project(x, y);
-    }*/
 
     // Get some samples (3 should be enough be the more the better I guess)
     const int maxHomographySamples = 4;
@@ -664,7 +635,7 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     // that is below that, i.e. under the table will be ignored
     auto centerX = static_cast<int>(width / 2);
     auto centerY = static_cast<int>(height / 2);
-    auto centerZ = depth_scale * p_depth_frame[centerX + (centerY * width)];
+    auto centerZ = depth_scale * static_cast<float>(p_depth_frame[centerX + (centerY * width)]);
     std::cout << "Callibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
     callibrated_z = (H_zrow[0] * centerX) + (H_zrow[1] * centerY) + (H_zrow[2] * centerZ);
     callibrated_z -= 0.05;
@@ -693,12 +664,9 @@ void RealsenseCameraManager::applyThreshold(rs2::video_frame& other_frame, rs2::
 		for (int x = 0; x < width; x++, ++depth_pixel_index)
 		{
 			// Original depth value
-			auto z = depth_scale * p_depth_frame[depth_pixel_index];
+			auto z = depth_scale * static_cast<float>(p_depth_frame[depth_pixel_index]);
 			// Altered depth value
-            //cv::Mat aligned = H.mul(cv::Scalar ({ static_cast<float>(x), static_cast<float>(y), z }));
-			//float pixels_distance = aligned.at<float>(2);
-			float pixels_distance = (H_zrow[0] * x) + (H_zrow[1] * y) + (H_zrow[2] * z) + H_zrow[3];
-            //float pixels_distance = z;
+			double pixels_distance = (H_zrow[0] * x) + (H_zrow[1] * y) + (H_zrow[2] * z) + H_zrow[3];
 
 			// Check if the depth value is invalid (<=0) or greater than the threashold
 			if (pixels_distance <= zMin || pixels_distance >= zMax)
@@ -710,7 +678,7 @@ void RealsenseCameraManager::applyThreshold(rs2::video_frame& other_frame, rs2::
 				std::memset(&p_other_frame[offset], color, other_bpp);
 
                 // Update z index in the depth frame
-                std::memset(&p_depth_frame[depth_pixel_index], pixels_distance, sizeof(uint16_t));
+                std::memset(&p_depth_frame[depth_pixel_index], static_cast<unsigned short>(pixels_distance), sizeof(uint16_t));
 			}
 		}
 	}
@@ -724,21 +692,13 @@ rs2::depth_frame RealsenseCameraManager::getRs2DepthFrame() {
 	return processedRs2DepthFrame.as<rs2::depth_frame>();
 }
 
-cv::Mat RealsenseCameraManager::getCvColorFrame() {
-	return processedCvColorFrame;
-}
-
-cv::Mat RealsenseCameraManager::getCvDepthFrame() {
-	return processedCvDepthFrame;
-}
-
-float RealsenseCameraManager::get_depth_scale(rs2::device dev)
+float RealsenseCameraManager::get_depth_scale(const rs2::device& dev)
 {
 	// Go over the device's sensors
 	for (rs2::sensor& sensor : dev.query_sensors())
 	{
 		// Check if the sensor if a depth sensor
-		if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>())
+		if (auto dpt = sensor.as<rs2::depth_sensor>())
 		{
 			return dpt.get_depth_scale();
 		}
@@ -754,7 +714,7 @@ rs2_stream RealsenseCameraManager::find_stream_to_align(const std::vector<rs2::s
 	rs2_stream align_to = RS2_STREAM_ANY;
 	bool depth_stream_found = false;
 	bool color_stream_found = false;
-	for (rs2::stream_profile sp : streams)
+	for (const auto& sp : streams)
 	{
 		rs2_stream profile_stream = sp.stream_type();
 		if (profile_stream != RS2_STREAM_DEPTH)
@@ -798,9 +758,8 @@ bool RealsenseCameraManager::profile_changed(const std::vector<rs2::stream_profi
 
 RealsenseCameraManager::~RealsenseCameraManager()
 {
-	stop();
+    pipe->stop();
 }
-
 
 bool RealsenseCameraManager::init() {
 	pipe = std::make_shared<rs2::pipeline>();
@@ -820,14 +779,13 @@ bool RealsenseCameraManager::init(std::string filePath) {
 }
 
 void RealsenseCameraManager::stop() {
-	pipe->stop();
 }
 
-cv::Mat RealsenseCameraManager::getColorFrame([[maybe_unused]] int delayMS) {
+cv::Mat RealsenseCameraManager::getColorFrame(int delayMS) {
 	return colorMat;
 }
 
-cv::Mat RealsenseCameraManager::getDepthFrame([[maybe_unused]] int delayMS) {
+cv::Mat RealsenseCameraManager::getDepthFrame(int delayMS) {
 	return depthMat;
 }
 
@@ -981,7 +939,7 @@ cv::Mat RealsenseCameraManager::convertDepthFrameToMetersMat(const rs2::depth_fr
 	return dm;
 }
 
-void RealsenseCameraManager::screenshot(int step, SCREENSHOT_FLAGS flags, std::string screenshotPath) {
+void RealsenseCameraManager::screenshot(int step, SCREENSHOT_FLAGS flags, const std::string& screenshotPath) {
     cv::Mat mat;
     switch (step) {
         default:
