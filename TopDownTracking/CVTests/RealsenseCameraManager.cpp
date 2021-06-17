@@ -260,7 +260,7 @@ bool RealsenseCameraManager::processFrames() {
 	std::vector<std::vector<cv::Point>> hull;
 	std::vector<double> areas;
 	std::vector<double> centroids;
-	std::vector<std::vector<cv::Point2f>> boundingBoxes;
+	std::vector<std::tuple<int, std::vector<cv::Point2f>>> boundingBoxes;
 	std::vector<cv::Vec4i> hierarchy;
 	std::vector<cv::Scalar> colors = {
 		cv::Scalar(1.0f, 0.0f, 0.0f) * 255, //, 1.0f),
@@ -291,7 +291,7 @@ bool RealsenseCameraManager::processFrames() {
         auto minRect = cv::minAreaRect(contours[i]);
         std::vector<cv::Point2f> box(4);
         minRect.points(box.data());
-        boundingBoxes.emplace_back(box);
+        boundingBoxes.emplace_back(std::make_tuple(i, box));
 	}
 
     // =========================================
@@ -299,25 +299,35 @@ bool RealsenseCameraManager::processFrames() {
     // =========================================
 
     std::vector<cv::RotatedRect> handBoxes;
-    for (auto& box : boundingBoxes) {
+    std::vector<cv::RotatedRect> secondaryHandBoxes;
+    std::vector<std::vector<cv::Point2i>> finalContours{boundingBoxes.size()};
+    std::vector<cv::RotatedRect> finalHandBoxes{boundingBoxes.size()};
+    for (int i = 0; i < boundingBoxes.size(); i++) {
+        auto bindex = std::get<0>(boundingBoxes[i]);
+        auto &box = std::get<1>(boundingBoxes[i]);
+
         typedef cv::Point2f p2f;
         typedef std::vector<p2f> rect;
-        typedef std::tuple<double, p2f, p2f, p2f, p2f> boxinfo;
+        typedef std::tuple<double, p2f, p2f, p2f, p2f, int> boxinfo;
         std::vector<boxinfo> sideLengths{
-                { cv::norm(box[0] - box[1]), box[0], box[1], box[2], box[3] },
-                { cv::norm(box[1] - box[2]), box[1], box[2], box[3], box[0] },
-                { cv::norm(box[2] - box[3]), box[2], box[3], box[0], box[1] },
-                { cv::norm(box[3] - box[0]), box[3], box[0], box[1], box[2] }
+                {cv::norm(box[0] - box[1]), box[0], box[1], box[2], box[3], 0},
+                {cv::norm(box[1] - box[2]), box[1], box[2], box[3], box[0], 1},
+                {cv::norm(box[2] - box[3]), box[2], box[3], box[0], box[1], 2},
+                {cv::norm(box[3] - box[0]), box[3], box[0], box[1], box[2], 3}
         };
+        std::cout << std::get<5>(sideLengths[0]) << " (" << std::get<0>(sideLengths[0]) << "), ";
+        std::cout << std::get<5>(sideLengths[1]) << " (" << std::get<0>(sideLengths[1]) << "), ";
+        std::cout << std::get<5>(sideLengths[2]) << " (" << std::get<0>(sideLengths[2]) << "), ";
+        std::cout << std::get<5>(sideLengths[3]) << " (" << std::get<0>(sideLengths[3]) << ")" << std::endl;
         std::sort(sideLengths.begin(), sideLengths.end(), [](const boxinfo &b1, const boxinfo &b2) {
-            double length1 = std::get<0>(b1);
-            double length2 = std::get<0>(b1);
-            return length1 < length2;
+          double length1 = std::get<0>(b1);
+          double length2 = std::get<0>(b2);
+          return length1 < length2;
         });
 
         std::vector<std::tuple<rect, p2f, bool>> rects;
         for (int j = 0; j < 2; j++) {
-            auto [length, x1, x2, x3, x4] = sideLengths[j];
+            auto[length, x1, x2, x3, x4, _] = sideLengths[j];
             auto v = x3 - x2; // direction
             auto v_hat = v / cv::norm(v);
             auto x3_new = x2 + (v_hat * length);
@@ -341,16 +351,32 @@ bool RealsenseCameraManager::processFrames() {
 
         auto score1 = dist2center1 + (imageCenter.x - dist2vertEdge1) + (imageCenter.y - dist2horizEdge1);
         auto score2 = dist2center2 + (imageCenter.x - dist2vertEdge2) + (imageCenter.y - dist2horizEdge2);
+
+        auto rect1 = std::get<0>(rects[0]);
+        cv::RotatedRect rotatedRect1(rect1[0], rect1[1], rect1[2]);
+        auto rect2 = std::get<0>(rects[1]);
+        cv::RotatedRect rotatedRect2(rect2[0], rect2[1], rect2[2]);
+        cv::RotatedRect activeRect;
         if (score1 < score2) {
-            // std::get<2>(rects[0]) = true;
-            auto rect = std::get<0>(rects[0]);
-            cv::RotatedRect rotatedRect(rect[0], rect[1], rect[2]);
-            handBoxes.emplace_back(rotatedRect);
+            handBoxes.emplace_back(rotatedRect1);
+            secondaryHandBoxes.emplace_back(rotatedRect2);
+            activeRect = rotatedRect1;
         } else {
-            // std::get<2>(rects[1]) = true;
-            auto rect = std::get<0>(rects[1]);
-            cv::RotatedRect rotatedRect(rect[0], rect[1], rect[2]);
-            handBoxes.emplace_back(rotatedRect);
+            handBoxes.emplace_back(rotatedRect2);
+            secondaryHandBoxes.emplace_back(rotatedRect1);
+            activeRect = rotatedRect2;
+        }
+
+        for (const auto c : contours[bindex]) {
+            if (pointInsideRotatedRect(c, activeRect)) {
+                finalContours[i].emplace_back(c);
+                std::cout << "is in contour (" << bindex << ")" << std::endl;
+            }
+        }
+
+        if (finalContours[i].size() > 0) {
+            auto minRect = cv::minAreaRect(finalContours[i]);
+            finalHandBoxes.emplace_back(minRect);
         }
     }
 
@@ -363,7 +389,6 @@ bool RealsenseCameraManager::processFrames() {
     multiTracker.updateClusters(handBoxes);
     auto trackedClusters = multiTracker.getClusters();
 
-
     // =========================================
     // 9. Drawing
     // =========================================
@@ -371,17 +396,16 @@ bool RealsenseCameraManager::processFrames() {
     // Draw Contours
     for (int i = 0; i < contours.size(); i++) {
         if (areas[i] < maxAreaSize && areas[i] > minAreaSize) {
-            auto color = colors[i % colors.size()];
-            cv::drawContours(cvColorFrame, contours, i, color, 2, 8, hierarchy, 0);
+            //cv::drawContours(cvColorFrame, contours, i, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, hierarchy, 0);
         }
     }
 
     // Draw tracked objects
-    for (auto& [clusterId, cluster] : trackedClusters) {
+    for (const auto& [clusterId, cluster] : trackedClusters) {
         std::vector<cv::Point2f> points(4);
         cluster.rect.points(points.data());
         std::vector<std::vector<cv::Point2i>> polylines{ { points[0], points[1], points[2], points[3] } };
-        cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 0.0f, 255.0f), 2, 8, 0);
+        //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, 0);
         std::stringstream label;
         label << "Label: " << clusterId;
         auto color = colors[clusterId % colors.size()];
@@ -392,8 +416,28 @@ bool RealsenseCameraManager::processFrames() {
     for (const auto& handBox : handBoxes) {
         std::vector<cv::Point2f> points(4);
         handBox.points(points.data());
-        std::vector<std::vector<cv::Point2i>> polylines{ { points[0], points[1], points[2], points[3] } };
-        cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 255.0f, 255.0f), 2, 8, 0);
+        std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
+        //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 255.0f, 255.0f), 2, 8, 0);
+    }
+    for (const auto& handBox : secondaryHandBoxes) {
+        std::vector<cv::Point2f> points(4);
+        handBox.points(points.data());
+        std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
+        //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(255.0f, 0.0f, 255.0f), 2, 8, 0);
+    }
+
+    // Draw final contours
+    std::cout << "finalContours: " << finalContours.size() << std::endl;
+    for (const auto& finalContour : finalContours) {
+        cv::polylines(cvColorFrame, finalContour, true, cv::Scalar(0.0f, 255.0f, 0.0f), 2, 8, 0);
+    }
+
+    // Draw final handboxes
+    for (const auto& finalHandBox : finalHandBoxes) {
+        std::vector<cv::Point2f> points(4);
+        finalHandBox.points(points.data());
+        std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
+        cv::polylines(cvColorFrame, polylines, true, cv::Scalar(255.0f, 0.0f, 123.0f), 2, 8, 0);
     }
 
     // Draw calibration window
@@ -455,6 +499,25 @@ const char* RealsenseCameraManager::getFrameStepLabel(int step) {
         case 5: return "threshMat";
         case 6: return "morphMat";
     }
+}
+
+inline double RealsenseCameraManager::shoelace(cv::Point2f p1, cv::Point2f p2, cv::Point2f p3) {
+    return std::fabs(0.5 * (((p2.x - p1.x) * (p3.y - p1.y)) - ((p3.x - p1.x) * (p2.y - p1.y))));
+}
+
+inline bool RealsenseCameraManager::pointInsideRotatedRect(cv::Point2f point, cv::RotatedRect rotatedRect) {
+    cv::Point2f points[4];
+    rotatedRect.points(points);
+    const auto [rp1, rp2, rp3, rp4] = points;
+    const auto area12p = shoelace(rp1, rp2, point);
+    const auto area23p = shoelace(rp2, rp3, point);
+    const auto area34p = shoelace(rp3, rp4, point);
+    const auto area41p = shoelace(rp4, rp1, point);
+    const auto areaPSum = area12p + area23p + area34p + area41p;
+    const auto areaSum = shoelace(rp1, rp2, rp3) + shoelace(rp1, rp4, rp3);
+    std::cout << "point = " << point << "; rp1,rp2,rp3,rp4 = " << rp1 << ", " << rp2 << ", " << rp3 << ", " << rp4 << std::endl;
+    std::cout << "\tareaPSum = " << areaPSum << ", areaSum = " << areaSum << std::endl;
+    return areaPSum <= areaSum;
 }
 
 void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {

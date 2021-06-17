@@ -102,6 +102,9 @@ private:
 	static rs2_stream find_stream_to_align(const std::vector<rs2::stream_profile>& streams);
 	static bool profile_changed(const std::vector<rs2::stream_profile>& current, const std::vector<rs2::stream_profile>& prev);
 
+	inline double shoelace(cv::Point2f p1, cv::Point2f p2, cv::Point2f p3);
+	inline bool pointInsideRotatedRect(cv::Point2f point, cv::RotatedRect rotatedRect);
+
 	// Intermediate frames
     cv::Mat frame_cvColorFrame;
     cv::Mat frame_thresholdedColorFrame;
