@@ -255,10 +255,12 @@ bool RealsenseCameraManager::processFrames() {
 	//cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3), cv::Point(-1, -1));
 	//cv::dilate(threshMat, dilateMat, dilateKernel, cv::Point(-1, -1), 3);
 
-	cv::Mat morphMat;
-	cv::Mat morphKernel = cv::getStructuringElement(cv::MorphShapes::MORPH_RECT, cv::Size(prop_morph_kernel, prop_morph_kernel), cv::Point(-1, -1));
-	cv::morphologyEx(threshMat, morphMat, cv::MorphTypes::MORPH_OPEN, morphKernel);
-	cv::morphologyEx(morphMat, morphMat, cv::MorphTypes::MORPH_CLOSE, morphKernel);
+	// Morph Mat is really slow on the main cdp station
+	cv::Mat morphMat = threshMat;
+	//cv::Mat morphMat;
+	//cv::Mat morphKernel = cv::getStructuringElement(cv::MorphShapes::MORPH_RECT, cv::Size(prop_morph_kernel, prop_morph_kernel), cv::Point(-1, -1));
+	//cv::morphologyEx(threshMat, morphMat, cv::MorphTypes::MORPH_OPEN, morphKernel);
+	//cv::morphologyEx(morphMat, morphMat, cv::MorphTypes::MORPH_CLOSE, morphKernel);
 
 	// Cut out border so findContours does not match and merges it with the actual shapes
     cv::rectangle(morphMat, cv::Point(0, 0), cv::Point (width, height), cv::Scalar(255, 255, 255), 50);
