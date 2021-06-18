@@ -378,7 +378,6 @@ bool RealsenseCameraManager::processFrames() {
         for (const auto& c : contours[bindex]) {
             if (pointInsideRotatedRect(c, activeRect)) {
                 finalContours[i].emplace_back(c);
-                std::cout << "is in contour (" << bindex << ")" << std::endl;
             }
         }
 
