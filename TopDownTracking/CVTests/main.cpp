@@ -31,10 +31,11 @@
 #define SCREENSHOT_PATH "C:\\Users\\CDP Research Group\\Desktop\\"
 #endif
 
-enum RECORDING { NONE=-1, WT_BS, WT_WS, BT_BS, BT_WS, TABLE_0, TABLE_1, TABLE_2, COUNT };
+enum RECORDING { NONE=-1, LIVE, WT_BS, WT_WS, BT_BS, BT_WS, TABLE_0, TABLE_1, TABLE_2, COUNT };
 inline const std::string getRecording(int id) {
     auto rec = static_cast<RECORDING>(id);
     switch (rec) {
+        case LIVE: return "LIVE";
         case WT_BS: return RECORDING_WT_BS;
         case WT_WS: return RECORDING_WT_WS;
         case BT_BS: return RECORDING_BT_BS;
@@ -57,11 +58,7 @@ int main(int, char**) try
 	rs2::colorizer c;                     // Helper to colorize depth images
 	texture renderer;                     // Helper for renderig images
 
-#ifdef LIVE_CAMERA
-    auto rcm = new RealsenseCameraManager();
-#else
     auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
-#endif
 
     double fps;
 	std::chrono::steady_clock::time_point fpsLast;

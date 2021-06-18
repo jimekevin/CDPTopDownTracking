@@ -17,7 +17,7 @@
 
 RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
 {
-    if (bagPath.length() == 0) {
+    if (bagPath.length() == 0 || bagPath == "LIVE") {
         RealsenseCameraManager();
         return;
     }
