@@ -106,7 +106,7 @@ private:
 public:
     bool prop_stopped_frame = false;
     int prop_frame_step = 0;
-    float prop_z_culling_back = 0.0f;
+    float prop_z_culling_back = -0.1f;
     float prop_z_culling_front = 0.25f;
 	int prop_gaussian_kernel = 5;
 	float prop_threshold = 0.8f;
