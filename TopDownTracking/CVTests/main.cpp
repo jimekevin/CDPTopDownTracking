@@ -136,6 +136,7 @@ int main(int, char**) try
         ImGui::Text("%s", fpsOut.str().c_str());
         
         ImGui::Checkbox("Stop playback", &rcm->prop_stopped_frame);
+        if (ImGui::Button("Re-Calibrate")) rcm->recalibrate();
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
         ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
         //ImGui::Text(rcm->getFrameStepLabel());

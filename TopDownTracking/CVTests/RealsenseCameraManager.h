@@ -40,6 +40,7 @@ public:
     // SCANNERLIB_API cv::Mat getCvDepthFrame();
 
     static const char *getFrameStepLabel(int step);
+    SCANNERLIB_API void recalibrate();
 
 private:
     rs2::config cfg;
@@ -84,8 +85,8 @@ private:
 	bool isCalibrated = false;
 	cv::Mat H; // Homography matrix
 	double H_zrow[4] = { 0, 0, 0, 0 };
-	double callibrated_z = 10.0f;
-	SCANNERLIB_API void callibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame);
+	double calibrated_z = 10.0f;
+	SCANNERLIB_API void calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame);
 
 	static float get_depth_scale(const rs2::device& dev);
 	static rs2_stream find_stream_to_align(const std::vector<rs2::stream_profile>& streams);

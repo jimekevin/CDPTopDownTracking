@@ -200,7 +200,7 @@ bool RealsenseCameraManager::processFrames() {
 	// =========================================
 
 	if (!isCalibrated) {
-		callibrate(other_frame, aligned_filtered_depth_frame);
+		calibrate(other_frame, aligned_filtered_depth_frame);
 	}
 
 	// =========================================
@@ -532,7 +532,7 @@ inline bool RealsenseCameraManager::pointInsideRotatedRect(const cv::Point2f& po
     return areaPSum <= areaSum;
 }
 
-void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {
+void RealsenseCameraManager::calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {
 	auto p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
 	auto p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(other_frame.get_data()));
 
@@ -576,13 +576,13 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     A_samples.at<double>(3, 2) = 1.0f;
     b_samples.at<double>(3) = depth_scale * static_cast<float>(p_depth_frame[rw1 + (rh2 * width)]);
 
-    std::cout << "Callibration: A_samples=" << A_samples << "\n";
-    std::cout << "Callibration: b_samples=" << b_samples << "\n";
+    std::cout << "Calibration: A_samples=" << A_samples << "\n";
+    std::cout << "Calibration: b_samples=" << b_samples << "\n";
 
     // Calculate fitted plane
 	cv::Mat fitted_plane;
 	auto ret = cv::solve(A_samples, b_samples, fitted_plane, cv::DECOMP_SVD);
-    std::cout << "Callibration: fitted_plane=" << fitted_plane << "\n";
+    std::cout << "Calibration: fitted_plane=" << fitted_plane << "\n";
 
     // Define Z = a*X + b*Y + c
     auto project = [&](double x, double y) {
@@ -606,15 +606,15 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
             { -100.0f, -100.0f, 0.0f }
     };
     const auto to = cv::Mat(maxHomographySamples, 3, CV_64F, &to_data);
-    std::cout << "Callibration: from=" << from << "\n";
-    std::cout << "Callibration: to=" << to << "\n";
+    std::cout << "Calibration: from=" << from << "\n";
+    std::cout << "Calibration: to=" << to << "\n";
     H = cv::findHomography(from, to);
-    std::cout << "Callibration: H=" << H << " (" << H.rows << "," << H.cols << ")\n";
+    std::cout << "Calibration: H=" << H << " (" << H.rows << "," << H.cols << ")\n";
     H_zrow[0] = H.at<double>(2, 0);
     H_zrow[1] = H.at<double>(2, 1);
     H_zrow[2] = H.at<double>(2, 2);
     //H_zrow[3] = H.at<double>(2, 3);
-    std::cout << "Callibration: H_zrow=[" << H_zrow[0] << "," << H_zrow[1] << "," << H_zrow[2] << "\n"; //," << H_zrow[3] << "]\n";
+    std::cout << "Calibration: H_zrow=[" << H_zrow[0] << "," << H_zrow[1] << "," << H_zrow[2] << "\n"; //," << H_zrow[3] << "]\n";
 
     //double to2_data[maxHomographySamples][2] = {
             //{ 100.0f, 100.0f },
@@ -623,17 +623,17 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
             //{ -100.0f, -100.0f }
             //};
     //const auto to2 = cv::Mat(maxHomographySamples, 2, CV_64F, &from_data);
-    //std::cout << "Callibration[solvePnp]: from.shape=(" << from.rows << "," << from.cols << ")" << "\n";
-    //std::cout << "Callibration[solvePnp]: to2.shape=(" << to2.rows << "," << to2.cols << ")" << "\n";
+    //std::cout << "Calibration[solvePnp]: from.shape=(" << from.rows << "," << from.cols << ")" << "\n";
+    //std::cout << "Calibration[solvePnp]: to2.shape=(" << to2.rows << "," << to2.cols << ")" << "\n";
     //cv::Mat rvec, tvec;
     //cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type);
     //auto ret2 = cv::solvePnP(from, to2, cv::Mat::eye(3, 3, CV_64F), dist_coeffs, rvec, tvec, false, cv::SOLVEPNP_IPPE);
-    //std::cout << "Callibration[solvePnp]: ret2=" << ret2 << ", rvec=" << rvec << ", tvec=" << tvec << "\n";
+    //std::cout << "Calibration[solvePnp]: ret2=" << ret2 << ", rvec=" << rvec << ", tvec=" << tvec << "\n";
     //cv::Mat R(3, 3, CV_64F), RT(3, 4, CV_64F);
     //cv::Rodrigues(rvec, R);
-    //std::cout << "Callibration[solvePnP]: R=" << R << "\n";
+    //std::cout << "Calibration[solvePnP]: R=" << R << "\n";
     //cv::hconcat(R, tvec, RT);
-    //std::cout << "Callibration[solvePnP]: RT=" << RT << "\n";
+    //std::cout << "Calibration[solvePnP]: RT=" << RT << "\n";
     //
     // H_zrow[0] = R.at<double>(2, 0);
     //H_zrow[1] = R.at<double>(2, 1);
@@ -645,12 +645,16 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     auto centerX = static_cast<int>(width / 2);
     auto centerY = static_cast<int>(height / 2);
     auto centerZ = depth_scale * static_cast<float>(p_depth_frame[centerX + (centerY * width)]);
-    std::cout << "Callibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
-    callibrated_z = (H_zrow[0] * centerX) + (H_zrow[1] * centerY) + (H_zrow[2] * centerZ);
-    callibrated_z -= 0.05;
-    std::cout << "Callibration: callibrated_z=" << callibrated_z << "\n";
+    std::cout << "Calibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
+    calibrated_z = (H_zrow[0] * centerX) + (H_zrow[1] * centerY) + (H_zrow[2] * centerZ);
+    calibrated_z -= 0.05;
+    std::cout << "Calibration: calibrated_z=" << calibrated_z << "\n";
 
 	isCalibrated = true;
+}
+
+void RealsenseCameraManager::recalibrate() {
+    isCalibrated = false;
 }
 
 void RealsenseCameraManager::applyThreshold(rs2::video_frame& other_frame, rs2::depth_frame& depth_frame, unsigned char color)
@@ -663,8 +667,8 @@ void RealsenseCameraManager::applyThreshold(rs2::video_frame& other_frame, rs2::
 	auto height = other_frame.get_height();
 	auto other_bpp = other_frame.get_bytes_per_pixel();
 
-	auto zMax = callibrated_z + prop_z_culling_back;
-	auto zMin = callibrated_z - prop_z_culling_front;
+	auto zMax = calibrated_z + prop_z_culling_back;
+	auto zMin = calibrated_z - prop_z_culling_front;
 	zMin -= 0.25f;
 //sd#pragma omp parallel for schedule(dynamic) //Using OpenMP to try to parallelise the loop
 	for (int y = 0; y < height; y++)
