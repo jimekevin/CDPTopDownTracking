@@ -2,6 +2,7 @@
 
 #include <random>
 #include <iostream>
+#include <fstream>
 
 //#include <opencv2/tracking.hpp>
 #include <opencv2/calib3d.hpp>
@@ -17,6 +18,12 @@
 RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
 {
     if (bagPath.length() == 0) {
+        RealsenseCameraManager();
+        return;
+    }
+
+    std::ifstream infile(bagPath.c_str());
+    if (!infile.good()) {
         RealsenseCameraManager();
         return;
     }
