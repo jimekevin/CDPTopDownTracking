@@ -78,7 +78,7 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
     }
 
     // Store centroids
-    std::vector<cv::Point> centroids(rects.size());
+    std::vector<cv::Point> centroids;
     for (auto& rect : rects) {
         centroids.emplace_back(rect.center);
     }
@@ -125,7 +125,6 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
             assignedCentroids.insert(cindex);
             assignedClusters.insert(clusterId);
         }
-
 
         // Assign new rects
         if (clusters.size() < rects.size()) {
