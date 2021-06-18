@@ -7,6 +7,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
 #include <utility>
+#include <ctime>
 
 //
 // References
@@ -953,8 +954,12 @@ void RealsenseCameraManager::screenshot(int step, SCREENSHOT_FLAGS flags, const 
 
     if (flags == SAVE || flags == DISPLAY_SAVE) {
         std::stringstream imagePath;
-        auto time = std::time(nullptr);
-        imagePath << screenshotPath << time << ".png";
+#ifdef APPLE
+        auto t = std::time(nullptr);
+#else
+        auto t = time(nullptr);
+#endif
+        imagePath << screenshotPath << t << ".png";
         std::cout << "Saved screenshot of '" << getFrameStepLabel(step) << "' to '" << imagePath.str() << "'";
         cv::imwrite(imagePath.str(), mat);
     }
