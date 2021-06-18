@@ -12,19 +12,26 @@
 #include "RealsenseCameraManager.h"
 
 #ifdef APPLE
-#define DATA_PATH "/Users/lilith/Projekte/CDPTopDownTracking/TopDownTracking/data/"
+#define RECORDING_BT_BS "/Volumes/Kevkon/20210421_193350_bt_bs.bag"
+#define RECORDING_BT_WS "/Volumes/Kevkon/20210421_193310_bt_ws.bag" // Removed for now
+#define RECORDING_WT_WS "/Volumes/Kevkon/20210421_193129_wt_ws.bag"
+#define RECORDING_WT_BS "/Volumes/Kevkon/20210421_193054_wt_bs.bag" // Removed for now (30.05.2021)
+#define RECORDING_TABLE_0 "/Volumes/Kevkon/20210617_165603.bag"
+#define RECORDING_TABLE_1 "/Volumes/Kevkon/20210617_165633.bag"
+#define RECORDING_TABLE_2 "/Volumes/Kevkon/20210617_165711.bag"
 #define SCREENSHOT_PATH "/Users/lilith/Desktop/"
 #else
-#define DATA_PATH "C:\\Projects\\CDPTopDownTracking\\TopDownTracking\\data\\"
-#define SCREENSHOT_PATH "C:\\Users\\Kevin Bein\\Desktop\\"
+#define RECORDING_BT_BS "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210421_193350_bt_bs.bag"
+#define RECORDING_BT_WS "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210421_193310_bt_ws.bag" // Removed for now
+#define RECORDING_WT_WS "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210421_193129_wt_ws.bag"
+#define RECORDING_WT_BS "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210421_193054_wt_bs.bag" // Removed for now (30.05.2021)
+#define RECORDING_TABLE_0 "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210617_165603.bag"
+#define RECORDING_TABLE_1 "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210617_165633.bag"
+#define RECORDING_TABLE_2 "C:\\Users\\CDP Research Group\\Desktop\\ExternalTools\\TopDownTracking\\data\\20210617_165711.bag"
+#define SCREENSHOT_PATH "C:\\Users\\CDP Research Group\\Desktop\\"
 #endif
 
-#define RECORDING_BT_BS DATA_PATH"20210421_193350_bt_bs.bag"
-#define RECORDING_BT_WS DATA_PATH"20210421_193310_bt_ws.bag"
-#define RECORDING_WT_WS DATA_PATH"20210421_193129_wt_ws.bag"
-#define RECORDING_WT_BS DATA_PATH"20210421_193054_wt_bs.bag" // Removed for now (30.05.2021)
-
-enum RECORDING { NONE=-1, WT_BS, WT_WS, BT_BS, BT_WS, COUNT };
+enum RECORDING { NONE=-1, WT_BS, WT_WS, BT_BS, BT_WS, TABLE_0, TABLE_1, TABLE_2, COUNT };
 inline const std::string getRecording(int id) {
     auto rec = static_cast<RECORDING>(id);
     switch (rec) {
@@ -32,11 +39,14 @@ inline const std::string getRecording(int id) {
         case WT_WS: return RECORDING_WT_WS;
         case BT_BS: return RECORDING_BT_BS;
         case BT_WS: return RECORDING_BT_WS;
+        case TABLE_0: return RECORDING_TABLE_0;
+        case TABLE_1: return RECORDING_TABLE_1;
+        case TABLE_2: return RECORDING_TABLE_2;
         default:    return "";
     }
 }
 
-int activeRecording = static_cast<int>(RECORDING::WT_WS);
+int activeRecording = static_cast<int>(RECORDING::TABLE_0);
 int lastRecording = activeRecording;
 
 int main(int, char**) try
@@ -47,7 +57,11 @@ int main(int, char**) try
 	rs2::colorizer c;                     // Helper to colorize depth images
 	texture renderer;                     // Helper for renderig images
 
+#ifdef LIVE_CAMERA
     auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
+#else
+    auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
+#endif
 
     double fps;
 	std::chrono::steady_clock::time_point fpsLast;
