@@ -452,7 +452,7 @@ bool RealsenseCameraManager::processFrames() {
     auto rw2 = (width / 2) + (m_cal_maxWidth / 2);
     auto rh1 = (height / 2) - (m_cal_maxHeight / 2);
     auto rh2 = (height / 2) + (m_cal_maxHeight / 2);
-    cv::rectangle(processedCvColorFrame, cv::Rect(cv::Point(rw1, rh1), cv::Size(m_cal_maxWidth, m_cal_maxHeight)), cv::Scalar(127,0,255));
+    cv::rectangle(cvColorFrame, cv::Rect(cv::Point(rw1, rh1), cv::Size(m_cal_maxWidth, m_cal_maxHeight)), cv::Scalar(127,0,255));
 
     // =========================================
 	// 10. Finalize
