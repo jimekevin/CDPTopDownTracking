@@ -550,8 +550,9 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
 	std::uniform_int_distribution<> distrw(rw1, rw2); 
 	std::uniform_int_distribution<> distrh(rh1, rh2);
 	//std::vector<xyz> pixel_depths;
-	auto A_samples = cv::Mat(4, 3, CV_64F);
-	auto b_samples = cv::Mat(4, 1, CV_64F);
+	constexpr auto sample_count = 4;
+	auto A_samples = cv::Mat(sample_count, 3, CV_64F);
+	auto b_samples = cv::Mat(sample_count, 1, CV_64F);
 
     A_samples.at<double>(0, 0) = static_cast<double>(rw1);
     A_samples.at<double>(0, 1) = static_cast<double>(rh1);

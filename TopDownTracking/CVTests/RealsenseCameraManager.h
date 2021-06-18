@@ -80,7 +80,7 @@ private:
 
   // Get random points around a 500x250 area in the center of the image
     const int m_cal_maxWidth  = 600;
-    const int m_cal_maxHeight = 300;
+    const int m_cal_maxHeight = 200;
 	bool isCalibrated = false;
 	cv::Mat H; // Homography matrix
 	double H_zrow[4] = { 0, 0, 0, 0 };
@@ -109,7 +109,7 @@ public:
     float prop_z_culling_back = 0.0f;
     float prop_z_culling_front = 0.25f;
 	int prop_gaussian_kernel = 5;
-	float prop_threshold = 0.6f;
+	float prop_threshold = 0.8f;
 	float prop_threshold_max = 255.0f;
 	int prop_morph_kernel = 25;
     bool prop_save_screenshot = false;

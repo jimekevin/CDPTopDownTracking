@@ -142,8 +142,8 @@ int main(int, char**) try
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
         ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
         //ImGui::Text(rcm->getFrameStepLabel());
-        ImGui::SliderFloat("Z Culling Back", &rcm->prop_z_culling_back, -1.0f, 1.0f);
-        ImGui::SliderFloat("Z Culling Front", &rcm->prop_z_culling_front, -1.0f, 1.0f);
+        ImGui::SliderFloat("Z Culling Back", &rcm->prop_z_culling_back, -3.0f, 3.0f);
+        ImGui::SliderFloat("Z Culling Front", &rcm->prop_z_culling_front, -3.0f, 3.0f);
         ImGui::SliderIntWithSteps("Gaussian Kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
         ImGui::SliderFloat("Threshold", &rcm->prop_threshold, 0.0f, 1.0f);
         ImGui::SliderFloat("Threshold Max", &rcm->prop_threshold_max, 0.0f, 255.0f);
