@@ -607,24 +607,24 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     H_zrow[3] = H.at<double>(2, 3);
     std::cout << "Callibration: H_zrow=[" << H_zrow[0] << "," << H_zrow[1] << "," << H_zrow[2] << "," << H_zrow[3] << "]\n";
 
-    double to2_data[maxHomographySamples][2] = {
-            { 100.0f, 100.0f },
-            { -100.0f, 100.0f },
-            { 100.0f, -100.0f },
-            { -100.0f, -100.0f }
-    };
-    const auto to2 = cv::Mat(maxHomographySamples, 2, CV_64F, &from_data);
-    std::cout << "Callibration[solvePnp]: from.shape=(" << from.rows << "," << from.cols << ")" << "\n";
-    std::cout << "Callibration[solvePnp]: to2.shape=(" << to2.rows << "," << to2.cols << ")" << "\n";
-    cv::Mat rvec, tvec;
-    cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type);
-    auto ret2 = cv::solvePnP(from, to2, cv::Mat::eye(3, 3, CV_64F), dist_coeffs, rvec, tvec, false, cv::SOLVEPNP_IPPE);
-    std::cout << "Callibration[solvePnp]: ret2=" << ret2 << ", rvec=" << rvec << ", tvec=" << tvec << "\n";
-    cv::Mat R(3, 3, CV_64F), RT(3, 4, CV_64F);
-    cv::Rodrigues(rvec, R);
-    std::cout << "Callibration[solvePnP]: R=" << R << "\n";
-    cv::hconcat(R, tvec, RT);
-    std::cout << "Callibration[solvePnP]: RT=" << RT << "\n";
+    //double to2_data[maxHomographySamples][2] = {
+            //{ 100.0f, 100.0f },
+            //{ -100.0f, 100.0f },
+            //{ 100.0f, -100.0f },
+            //{ -100.0f, -100.0f }
+            //};
+    //const auto to2 = cv::Mat(maxHomographySamples, 2, CV_64F, &from_data);
+    //std::cout << "Callibration[solvePnp]: from.shape=(" << from.rows << "," << from.cols << ")" << "\n";
+    //std::cout << "Callibration[solvePnp]: to2.shape=(" << to2.rows << "," << to2.cols << ")" << "\n";
+    //cv::Mat rvec, tvec;
+    //cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type);
+    //auto ret2 = cv::solvePnP(from, to2, cv::Mat::eye(3, 3, CV_64F), dist_coeffs, rvec, tvec, false, cv::SOLVEPNP_IPPE);
+    //std::cout << "Callibration[solvePnp]: ret2=" << ret2 << ", rvec=" << rvec << ", tvec=" << tvec << "\n";
+    //cv::Mat R(3, 3, CV_64F), RT(3, 4, CV_64F);
+    //cv::Rodrigues(rvec, R);
+    //std::cout << "Callibration[solvePnP]: R=" << R << "\n";
+    //cv::hconcat(R, tvec, RT);
+    //std::cout << "Callibration[solvePnP]: RT=" << RT << "\n";
     //
     // H_zrow[0] = R.at<double>(2, 0);
     //H_zrow[1] = R.at<double>(2, 1);
