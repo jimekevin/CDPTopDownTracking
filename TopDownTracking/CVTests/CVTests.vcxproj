@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0D4F95ED-F8AB-4AAB-A379-DA32A03CF986}</ProjectGuid>
     <RootNamespace>CVTests</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -74,8 +74,8 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\include;C:\Users\Kevin Bein\Downloads\librealsense-master\examples\align-advanced\..\..\common;C:\Users\Kevin Bein\Downloads\librealsense-master\examples\align-advanced\..\..\third-party\imgui;C:\Users\Kevin Bein\Downloads\librealsense-master\examples\align-advanced\..\..\examples;C:\dev\librealsense;C:\Users\Kevin Bein\Downloads\librealsense-master\include;C:\Users\Kevin Bein\Downloads\librealsense-master\third-party\glfw\include;C:\dev\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\include;C:\Program Files (x86)\Intel RealSense SDK 2.0\samples\align-advanced\..\..\common;C:\Program Files (x86)\Intel RealSense SDK 2.0\samples\align-advanced\..\..\third-party\imgui;C:\Program Files (x86)\Intel RealSense SDK 2.0\samples\align-advanced\..\..\examples;C:\dev\librealsense;C:\Program Files (x86)\Intel RealSense SDK 2.0\include;C:\Program Files (x86)\Intel RealSense SDK 2.0\third-party\glfw\include;C:\dev\vcpkg\installed\x64-windows\include;C:\Users\CDP Research Group\Desktop\ExternalTools\Externals\OpenCV\include;C:\Program Files (x86)\Intel RealSense SDK 2.0\third-party\glfw-imgui\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <SDLCheck>false</SDLCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
@@ -83,8 +83,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>C:\Projects\cdp\Externals\OpenCV\lib;C:\dev\librealsense2\lib;C:\dev\vcpkg\installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world410d.lib;realsense2.lib;glfw3.lib;imgui.lib;opengl32.lib;glu32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\CDP Research Group\Desktop\ExternalTools\Externals\OpenCV\lib;C:\Program Files (x86)\Intel RealSense SDK 2.0\lib\x64;C:\Users\CDP Research Group\Desktop\ExternalTools\Externals\glfw-3.3.4.bin.WIN64\lib-vc2017;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world410d.lib;realsense2.lib;glfw3.lib;opengl32.lib;glu32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
