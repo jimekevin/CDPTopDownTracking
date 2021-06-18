@@ -18,13 +18,13 @@
 RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
 {
     if (bagPath.length() == 0 || bagPath == "LIVE") {
-        RealsenseCameraManager();
+        new (this) RealsenseCameraManager();
         return;
     }
 
     std::ifstream infile(bagPath.c_str());
     if (!infile.good()) {
-        RealsenseCameraManager();
+        new (this) RealsenseCameraManager();
         return;
     }
 
