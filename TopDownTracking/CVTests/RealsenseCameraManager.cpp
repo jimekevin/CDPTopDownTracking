@@ -322,10 +322,10 @@ bool RealsenseCameraManager::processFrames() {
                 {cv::norm(box[2] - box[3]), box[2], box[3], box[0], box[1], 2},
                 {cv::norm(box[3] - box[0]), box[3], box[0], box[1], box[2], 3}
         };
-        std::cout << std::get<5>(sideLengths[0]) << " (" << std::get<0>(sideLengths[0]) << "), ";
-        std::cout << std::get<5>(sideLengths[1]) << " (" << std::get<0>(sideLengths[1]) << "), ";
-        std::cout << std::get<5>(sideLengths[2]) << " (" << std::get<0>(sideLengths[2]) << "), ";
-        std::cout << std::get<5>(sideLengths[3]) << " (" << std::get<0>(sideLengths[3]) << ")" << std::endl;
+        //std::cout << std::get<5>(sideLengths[0]) << " (" << std::get<0>(sideLengths[0]) << "), ";
+        //std::cout << std::get<5>(sideLengths[1]) << " (" << std::get<0>(sideLengths[1]) << "), ";
+        //std::cout << std::get<5>(sideLengths[2]) << " (" << std::get<0>(sideLengths[2]) << "), ";
+        //std::cout << std::get<5>(sideLengths[3]) << " (" << std::get<0>(sideLengths[3]) << ")" << std::endl;
         std::sort(sideLengths.begin(), sideLengths.end(), [](const boxinfo &b1, const boxinfo &b2) {
           double length1 = std::get<0>(b1);
           double length2 = std::get<0>(b2);
