@@ -612,8 +612,8 @@ void RealsenseCameraManager::callibrate(rs2::video_frame& other_frame, const rs2
     H_zrow[0] = H.at<double>(2, 0);
     H_zrow[1] = H.at<double>(2, 1);
     H_zrow[2] = H.at<double>(2, 2);
-    H_zrow[3] = H.at<double>(2, 3);
-    std::cout << "Callibration: H_zrow=[" << H_zrow[0] << "," << H_zrow[1] << "," << H_zrow[2] << "," << H_zrow[3] << "]\n";
+    //H_zrow[3] = H.at<double>(2, 3);
+    std::cout << "Callibration: H_zrow=[" << H_zrow[0] << "," << H_zrow[1] << "," << H_zrow[2] << "\n"; //," << H_zrow[3] << "]\n";
 
     //double to2_data[maxHomographySamples][2] = {
             //{ 100.0f, 100.0f },
@@ -674,7 +674,7 @@ void RealsenseCameraManager::applyThreshold(rs2::video_frame& other_frame, rs2::
 			// Original depth value
 			auto z = depth_scale * static_cast<float>(p_depth_frame[depth_pixel_index]);
 			// Altered depth value
-			double pixels_distance = (H_zrow[0] * x) + (H_zrow[1] * y) + (H_zrow[2] * z) + H_zrow[3];
+			double pixels_distance = (H_zrow[0] * x) + (H_zrow[1] * y) + (H_zrow[2] * z);
 
 			// Check if the depth value is invalid (<=0) or greater than the threashold
 			if (pixels_distance <= zMin || pixels_distance >= zMax)
