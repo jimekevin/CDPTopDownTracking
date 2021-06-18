@@ -58,7 +58,7 @@ int main(int, char**) try
 	texture renderer;                     // Helper for renderig images
 
 #ifdef LIVE_CAMERA
-    auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
+    auto rcm = new RealsenseCameraManager();
 #else
     auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
 #endif
