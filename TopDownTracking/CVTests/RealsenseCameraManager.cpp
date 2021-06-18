@@ -526,8 +526,8 @@ inline bool RealsenseCameraManager::pointInsideRotatedRect(const cv::Point2f& po
     const auto area41p = shoelace(rp4, rp1, point);
     const auto areaPSum = area12p + area23p + area34p + area41p;
     const auto areaSum = shoelace(rp1, rp2, rp3) + shoelace(rp1, rp4, rp3);
-    std::cout << "point = " << point << "; rp1,rp2,rp3,rp4 = " << rp1 << ", " << rp2 << ", " << rp3 << ", " << rp4 << std::endl;
-    std::cout << "\tareaPSum = " << areaPSum << ", areaSum = " << areaSum << std::endl;
+    //std::cout << "point = " << point << "; rp1,rp2,rp3,rp4 = " << rp1 << ", " << rp2 << ", " << rp3 << ", " << rp4 << std::endl;
+    //std::cout << "\tareaPSum = " << areaPSum << ", areaSum = " << areaSum << std::endl;
     return areaPSum <= areaSum;
 }
 
