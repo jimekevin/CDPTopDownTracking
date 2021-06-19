@@ -7,8 +7,6 @@
 //#include <opencv2/tracking.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
-#include <utility>
-#include <ctime>
 
 //
 // References
@@ -272,16 +270,16 @@ bool RealsenseCameraManager::processFrames() {
   std::vector<std::tuple<int, std::vector<cv::Point2f>>> boundingBoxes;
   std::vector<cv::Vec4i> hierarchy;
   std::vector<cv::Scalar> colors = {
-      cv::Scalar(1.0f, 0.0f, 0.0f) * 255, //, 1.0f),
-      cv::Scalar(0.0f, 1.0f, 0.0f) * 255, //, 1.0f),
-      cv::Scalar(0.0f, 0.0f, 1.0f) * 255, //, 1.0f),
-      cv::Scalar(1.0f, 1.0f, 0.0f) * 255, //, 1.0f),
-      cv::Scalar(1.0f, 0.0f, 1.0f) * 255, //, 1.0f),
-      cv::Scalar(0.0f, 1.0f, 1.0f) * 255, //, 1.0f),
-      cv::Scalar(0.5f, 1.0f, 0.0f) * 255, //, 1.0f),
-      cv::Scalar(0.5f, 0.0f, 1.0f) * 255, //, 1.0f),
-      cv::Scalar(1.0f, 0.5f, 0.0f) * 255, //, 1.0f),
-      cv::Scalar(1.0f, 0.0f, 0.5f) * 255, //, 1.0f),
+      cv::Scalar(255.0f, 0.0f, 0.0f),
+      cv::Scalar(0.0f, 255.0f, 0.0f),
+      cv::Scalar(0.0f, 0.0f, 255.0f),
+      cv::Scalar(255.0f, 255.0f, 0.0f),
+      cv::Scalar(255.0f, 0.0f, 255.0f),
+      cv::Scalar(0.0f, 255.0f, 255.0f),
+      cv::Scalar(0.5f, 255.0f, 0.0f),
+      cv::Scalar(0.5f, 0.0f, 255.0f),
+      cv::Scalar(255.0f, 0.5f, 0.0f),
+      cv::Scalar(255.0f, 0.0f, 0.5f),
   };
   cv::findContours(morphMat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
   hull.resize(contours.size());
@@ -642,8 +640,8 @@ void RealsenseCameraManager::calibrate(rs2::video_frame& other_frame, const rs2:
 
   // Get the center point of the new plane and add some small value. This is the threshold, everything
   // that is below that, i.e. under the table will be ignored
-  auto centerX = static_cast<int>(width / 2);
-  auto centerY = static_cast<int>(height / 2);
+  int centerX = width / 2;
+  int centerY = height / 2;
   auto centerZ = depth_scale * static_cast<float>(p_depth_frame[centerX + (centerY * width)]);
   std::cout << "Calibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
   calibrated_z = (H_zrow[0] * centerX) + (H_zrow[1] * centerY) + (H_zrow[2] * centerZ);
