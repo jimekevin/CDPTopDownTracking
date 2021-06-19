@@ -4,55 +4,8 @@
 #include <iostream>
 #include <fstream>
 
-//#include <opencv2/tracking.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
-
-//
-// References
-// - https://github.com/IntelRealSense/librealsense/issues/2634
-//
-
-RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
-{
-  if (bagPath.length() == 0 || bagPath == "LIVE") {
-    new (this) RealsenseCameraManager();
-    return;
-  }
-
-  std::ifstream infile(bagPath.c_str());
-  if (!infile.good()) {
-    new (this) RealsenseCameraManager();
-    return;
-  }
-
-  pipe = std::make_shared<rs2::pipeline>();
-
-  cfg.enable_device_from_file(bagPath);
-
-  profile = pipe->start(cfg);
-
-  depth_scale = get_depth_scale(profile.get_device());
-
-  align_to = find_stream_to_align(profile.get_streams());
-  align = std::make_shared<rs2::align>(align_to);
-}
-
-RealsenseCameraManager::RealsenseCameraManager()
-{
-  pipe = std::make_shared<rs2::pipeline>();
-
-  cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
-  //cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
-  cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
-
-  profile = pipe->start(cfg);
-
-  depth_scale = get_depth_scale(profile.get_device());
-
-  align_to = find_stream_to_align(profile.get_streams());
-  align = std::make_shared<rs2::align>(align_to);
-}
 
 void RealsenseCameraManager::MultiTracker::registerCluster(Cluster cluster) {
   clusters[nextClusterId] = std::move(cluster);
@@ -139,6 +92,27 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
       }
     }
   }
+}
+
+RealsenseCameraManager::RealsenseCameraManager(const std::string& bagPath)
+{
+  pipe = std::make_shared<rs2::pipeline>();
+
+  std::ifstream infile(bagPath.c_str());
+  if (bagPath.length() == 0 || bagPath == "LIVE" || !infile.good()) {
+    cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
+    //cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
+    cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
+  } else {
+    cfg.enable_device_from_file(bagPath);
+  }
+
+  profile = pipe->start(cfg);
+
+  depth_scale = get_depth_scale(profile.get_device());
+
+  align_to = find_stream_to_align(profile.get_streams());
+  align = std::make_shared<rs2::align>(align_to);
 }
 
 const RealsenseCameraManager::Clusters& RealsenseCameraManager::MultiTracker::getClusters() {

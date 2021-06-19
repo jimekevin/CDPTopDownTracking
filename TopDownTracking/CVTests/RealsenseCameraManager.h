@@ -11,8 +11,7 @@
 class RealsenseCameraManager : public IMixedCameraManager
 {
 public:
-  SCANNERLIB_API RealsenseCameraManager();
-  SCANNERLIB_API explicit RealsenseCameraManager(const std::string& bagPath);
+  SCANNERLIB_API explicit RealsenseCameraManager(const std::string& bagPath = "");
   SCANNERLIB_API ~RealsenseCameraManager() override;
   SCANNERLIB_API bool init() override;
   SCANNERLIB_API bool init(std::string filePath) override;
