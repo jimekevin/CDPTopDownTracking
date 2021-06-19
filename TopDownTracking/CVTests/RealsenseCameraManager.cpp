@@ -59,17 +59,18 @@ void RealsenseCameraManager::MultiTracker::registerCluster(Cluster cluster) {
   nextClusterId++;
 }
 
-// void RealsenseCameraManager::MultiTracker::deregisterCluster(int clusterId) {
-//     clusters.erase(clusterId);
-// }
+void RealsenseCameraManager::MultiTracker::deregisterCluster(Clusters::iterator it) {
+  clusters.erase(it);
+}
 
 void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::RotatedRect> &rects) {
+  // Remove all clusters that disappeared
   if (rects.empty()) {
     for (auto it = clusters.begin(), next_it = it; it != clusters.cend(); it = next_it) {
       ++next_it;
       it->second.disappeared += 1;
       if (it->second.disappeared >= maxDisappeared) {
-        clusters.erase(it++);
+        deregisterCluster(it++);
       }
     }
     return;
@@ -87,13 +88,8 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
       registerCluster(Cluster{ rects[i], centroids[i] });
     }
   }
-    // or match existing clusters
+  // or match existing clusters
   else {
-    // Unassign all existing clusters
-    //for (auto& [clusterId, cluster] : clusters) {
-    //    cluster.assigned = false;
-    //}
-
     // Calculate the distance of each centroid to each cluster ...
     typedef struct { int centroid; int clusterId; double dist; } ccpair;
     std::vector<ccpair> dists;
@@ -132,13 +128,13 @@ void RealsenseCameraManager::MultiTracker::updateClusters(const std::vector<cv::
         }
       }
     }
-      // Otherwise, remove all unassigned clusters (which have disappeared)
+    // Otherwise, remove all unassigned clusters (which have disappeared)
     else if (clusters.size() > rects.size()) {
       for (auto it = clusters.begin(), next_it = it; it != clusters.cend(); it = next_it) {
         ++next_it;
         it->second.disappeared += 1;
         if (it->second.disappeared >= maxDisappeared) {
-          clusters.erase(it++);
+          deregisterCluster(it++);
         }
       }
     }
