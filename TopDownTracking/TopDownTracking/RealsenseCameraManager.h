@@ -15,9 +15,9 @@ public:
     SCANNERLIB_API bool init() override;
     SCANNERLIB_API bool init(std::string filePath) override;
 	SCANNERLIB_API void stop() override;
-	SCANNERLIB_API cv::Mat getColorFrame(int delayMS = 0) override;
-	SCANNERLIB_API cv::Mat getDepthFrame(int delayMS = 0) override;
-	SCANNERLIB_API cv::Mat getAveragedDepthFrame(int numFramesAveraged = -1, std::vector<ColorSpacePoint>* colorPoints = nullptr) override;
+	SCANNERLIB_API cv::Mat GetColorFrame(int delayMS = 0) override;
+	SCANNERLIB_API cv::Mat GetDepthFrame(int delayMS = 0) override;
+	SCANNERLIB_API cv::Mat GetAveragedDepthFrame(int numFramesAveraged = -1, std::vector<ColorSpacePoint>* colorPoints = nullptr) override;
 	SCANNERLIB_API double getTableAt(double x, double y) override;
 	SCANNERLIB_API cv::Point3d get3DFromDepthAt(double x, double y, double depth) override;
 
@@ -29,8 +29,8 @@ public:
         cv::Mat cvDepthFrame;
         cv::Mat cvColorFrame;
 	} RenderSet;
-	SCANNERLIB_API bool pollFrames();
-	SCANNERLIB_API RenderSet processFrames();
+	SCANNERLIB_API bool PollFrames();
+	SCANNERLIB_API RenderSet ProcessFrames();
 	
 	typedef struct Filter {
 		rs2::filter filter;
@@ -47,8 +47,8 @@ public:
     SCANNERLIB_API int addTask(Task task);
     SCANNERLIB_API void enableTask(int taskId, bool enabled);
 
-	static cv::Mat convertFrameToMat(const rs2::frame& f);
-	static cv::Mat convertDepthFrameToMetersMat(const rs2::depth_frame & f);
+	static cv::Mat ConvertFrameToMat(const rs2::frame& f);
+	static cv::Mat ConvertDepthFrameToMetersMat(const rs2::depth_frame & f);
 
 private:
 	rs2::pointcloud pc;

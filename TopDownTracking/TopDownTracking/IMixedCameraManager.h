@@ -26,9 +26,9 @@ public:
 	virtual SCANNERLIB_API bool init() = 0;
     virtual SCANNERLIB_API bool init(std::string filePath = "") = 0;
 	virtual SCANNERLIB_API void stop() = 0;
-	virtual SCANNERLIB_API cv::Mat getColorFrame(int delayMS) = 0;
-	virtual SCANNERLIB_API cv::Mat getDepthFrame(int delayMS) = 0;
-	virtual SCANNERLIB_API cv::Mat getAveragedDepthFrame(int numFramesAveraged = -1, std::vector<ColorSpacePoint>* colorPoints = nullptr) = 0;
+	virtual SCANNERLIB_API cv::Mat GetColorFrame(int delayMS) = 0;
+	virtual SCANNERLIB_API cv::Mat GetDepthFrame(int delayMS) = 0;
+	virtual SCANNERLIB_API cv::Mat GetAveragedDepthFrame(int numFramesAveraged = -1, std::vector<ColorSpacePoint>* colorPoints = nullptr) = 0;
 	virtual SCANNERLIB_API double getTableAt(double x, double y) = 0;
 	virtual SCANNERLIB_API cv::Point3d get3DFromDepthAt(double x, double y, double depth) = 0;
 };

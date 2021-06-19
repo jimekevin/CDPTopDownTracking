@@ -36,15 +36,15 @@ void RealsenseCameraManager::stop() {
 	pipe->stop();
 }
 
-cv::Mat RealsenseCameraManager::getColorFrame([[maybe_unused]] int delayMS) {
+cv::Mat RealsenseCameraManager::GetColorFrame([[maybe_unused]] int delayMS) {
 	return colorMat;
 }
 
-cv::Mat RealsenseCameraManager::getDepthFrame([[maybe_unused]] int delayMS) {
+cv::Mat RealsenseCameraManager::GetDepthFrame([[maybe_unused]] int delayMS) {
 	return depthMat;
 }
 
-cv::Mat RealsenseCameraManager::getAveragedDepthFrame(int numFramesAveraged, std::vector<ColorSpacePoint>* colorPoints) {
+cv::Mat RealsenseCameraManager::GetAveragedDepthFrame(int numFramesAveraged, std::vector<ColorSpacePoint>* colorPoints) {
 	return cv::Mat::zeros(cv::Size(1, 1), CV_32F);
 }
 
@@ -55,7 +55,7 @@ cv::Point3d RealsenseCameraManager::get3DFromDepthAt(double x, double y, double 
 	return cv::Point3d(0.0, 0.0, 0.0);
 }
 
-bool RealsenseCameraManager::pollFrames() {
+bool RealsenseCameraManager::PollFrames() {
 	return pipe->poll_for_frames(&frames);
 
 	//if (!pipe->poll_for_frames(&frames)) {
@@ -76,7 +76,7 @@ bool RealsenseCameraManager::pollFrames() {
 	//return true;
 }
 
-RealsenseCameraManager::RenderSet RealsenseCameraManager::processFrames() {
+RealsenseCameraManager::RenderSet RealsenseCameraManager::ProcessFrames() {
 	//auto align_to = rs2_stream::RS2_STREAM_COLOR;
 	//auto align_to = rs2_stream::RS2_STREAM_DEPTH;
 	//rs2::align align(align_to);
@@ -108,9 +108,9 @@ RealsenseCameraManager::RenderSet RealsenseCameraManager::processFrames() {
 //#pragma omp parallel for num_threads(2)
     for (int i = 0; i < 2; ++i) {
 	    if (i == 0) {
-            cvDepthFrame = convertDepthFrameToMetersMat(depthFrame);
+            cvDepthFrame = ConvertDepthFrameToMetersMat(depthFrame);
 	    } else {
-	        cvColorFrame = convertFrameToMat(colorFrame);
+	        cvColorFrame = ConvertFrameToMat(colorFrame);
 	    }
 	}
 
@@ -145,7 +145,7 @@ void RealsenseCameraManager::enableTask(int taskId, bool enabled) {
     }
 }
 
-cv::Mat RealsenseCameraManager::convertFrameToMat(const rs2::frame& f)
+cv::Mat RealsenseCameraManager::ConvertFrameToMat(const rs2::frame& f)
 {
 	using namespace cv;
 	using namespace rs2;
@@ -182,9 +182,9 @@ cv::Mat RealsenseCameraManager::convertFrameToMat(const rs2::frame& f)
 }
 
 // Converts depth frame to a matrix of doubles with distances in meters
-cv::Mat RealsenseCameraManager::convertDepthFrameToMetersMat(const rs2::depth_frame & f)
+cv::Mat RealsenseCameraManager::ConvertDepthFrameToMetersMat(const rs2::depth_frame & f)
 {
-	cv::Mat dm = convertFrameToMat(f);
+	cv::Mat dm = ConvertFrameToMat(f);
 	dm.convertTo(dm, CV_64F);
 	dm = dm * f.get_units();
 	return dm;

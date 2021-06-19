@@ -58,23 +58,27 @@ int main(int, char**) try
 	rs2::colorizer c;                     // Helper to colorize depth images
 	texture renderer;                     // Helper for renderig images
 
-    auto rcm = new RealsenseCameraManager(getRecording(activeRecording));
+    auto rcm = std::make_unique<RealsenseCameraManager>();
+    if (!rcm->Init(getRecording(activeRecording))) {
+      std::cout << "Could not initialize RealsenseCameraManager\n";
+      return 1;
+    }
 
     double fps;
 	std::chrono::steady_clock::time_point fpsLast;
 	while (app) // Application still alive?
 	{
 	    if (activeRecording != lastRecording) {
-	        delete rcm;
-            rcm = new RealsenseCameraManager(getRecording(activeRecording));
+	        rcm = std::make_unique<RealsenseCameraManager>();
+          rcm->Init(getRecording(activeRecording));
 	        lastRecording = activeRecording;
 	    }
 
 		fpsLast = std::chrono::high_resolution_clock::now();
 
-		rcm->pollFrames();
+      rcm->PollFrames();
 
-		if (!rcm->processFrames()) {
+		if (!rcm->ProcessFrames()) {
 			continue;
 		}
 
@@ -92,10 +96,10 @@ int main(int, char**) try
 #if RENDER_RS2
 		rs2::video_frame other_frame = rcm->getRs2ColorFrame();
 #else
-		cv::Mat other_frame = rcm->getCvColorFrame();
+		cv::Mat other_frame = rcm->GetCvColorFrame();
 		//cv::Mat aligned_depth_frame = rcm->getCvDepthFrame();
 #endif
-		rs2::depth_frame aligned_depth_frame = rcm->getRs2DepthFrame();
+		rs2::depth_frame aligned_depth_frame = rcm->GetRs2DepthFrame();
 
 		// At this point, "other_frame" is an altered frame, stripped form its background
 		// Calculating the position to place the frame in the window
@@ -134,9 +138,9 @@ int main(int, char**) try
         std::stringstream fpsOut;
         fpsOut << "FPS: " << fps;
         ImGui::Text("%s", fpsOut.str().c_str());
-        
+
         ImGui::Checkbox("Stop playback", &rcm->prop_stopped_frame);
-        if (ImGui::Button("Re-Calibrate")) rcm->recalibrate();
+        if (ImGui::Button("Re-Calibrate")) rcm->Recalibrate();
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
         ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
         //ImGui::Text(rcm->getFrameStepLabel());
@@ -147,12 +151,12 @@ int main(int, char**) try
         ImGui::SliderFloat("Threshold Max", &rcm->prop_threshold_max, 0.0f, 255.0f);
         ImGui::SliderIntWithSteps("Morph kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
         auto screenshotFlag = rcm->prop_save_screenshot ? RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY_SAVE : RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY;
-        if (ImGui::Button("S 0")) rcm->screenshot(0, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        if (ImGui::Button("S 1")) rcm->screenshot(1, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        if (ImGui::Button("S 2")) rcm->screenshot(2, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        if (ImGui::Button("S 3")) rcm->screenshot(3, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        if (ImGui::Button("S 4")) rcm->screenshot(4, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        if (ImGui::Button("S 5")) rcm->screenshot(5, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 0")) rcm->Screenshot(0, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 1")) rcm->Screenshot(1, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 2")) rcm->Screenshot(2, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 3")) rcm->Screenshot(3, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 4")) rcm->Screenshot(4, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
+        if (ImGui::Button("S 5")) rcm->Screenshot(5, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         ImGui::Checkbox("Save", &rcm->prop_save_screenshot);
         ImGui::End();
 

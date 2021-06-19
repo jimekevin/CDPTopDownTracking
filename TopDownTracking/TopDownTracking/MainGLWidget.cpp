@@ -466,14 +466,14 @@ void MainGLWidget::timerEvent(QTimerEvent *)
 		}
 	}
 	// Poll latest frames
-	if (!rcm->pollFrames()) {
+	if (!rcm->PollFrames()) {
 		return;
 	}
 
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
 
-    auto rs = rcm->processFrames();
+    auto rs = rcm->ProcessFrames();
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
