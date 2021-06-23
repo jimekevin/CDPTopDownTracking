@@ -150,6 +150,7 @@ int main(int, char**) try
         ImGui::SliderFloat("Threshold", &rcm->properties.threshold, 0.0f, 1.0f);
         ImGui::SliderFloat("Threshold Max", &rcm->properties.threshold_max, 0.0f, 255.0f);
         ImGui::SliderIntWithSteps("Morph kernel", &rcm->properties.gaussian_kernel, 1, 23, 2, "%.0f");
+        ImGui::SliderIntWithSteps("Min area size", &rcm->properties.min_area_size, 1, 5000, 10, "%.0f");
         auto screenshotFlag = rcm->properties.save_screenshot ? RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY_SAVE : RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY;
         if (ImGui::Button("S 0")) rcm->Screenshot(0, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 1")) rcm->Screenshot(1, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();

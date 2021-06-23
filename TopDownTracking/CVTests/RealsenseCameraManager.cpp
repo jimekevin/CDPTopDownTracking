@@ -264,7 +264,7 @@ bool RealsenseCameraManager::ProcessFrames() {
   cv::findContours(morphMat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
   hull.resize(contours.size());
   const int kMaxAreaSize = calibration_max_width_ * calibration_max_height_;
-  const int kMinAreaSize = 20 * 20;
+  const int kMinAreaSize = properties.min_area_size;
   areas.clear();
   for (int i = 0; i < contours.size(); i++) {
     cv::convexHull(contours[i], hull[i]);

@@ -22,6 +22,7 @@ public:
     float threshold_max = 255.0f;
     // int morph_kernel = 25;
     bool save_screenshot = false;
+    int min_area_size = 2000;
   } Properties;
   Properties properties;
 
