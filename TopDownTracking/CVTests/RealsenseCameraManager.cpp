@@ -212,6 +212,7 @@ bool RealsenseCameraManager::ProcessFrames() {
   }
   cv::Mat contour_color_frame;
   cv::absdiff(prev_cv_color_frame_, cv_color_frame, contour_color_frame);
+  cv::bitwise_not(contour_color_frame, contour_color_frame);
 
   cv::Mat greyMat; // Different mat since we reduce the channels from 3 to 1
   //cv::cvtColor(contourColorFrame, greyMat, cv::COLOR_BGR2GRAY);
