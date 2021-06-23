@@ -185,7 +185,7 @@ bool RealsenseCameraManager::ProcessFrames() {
   // =========================================
 
   cv::Mat cvDepthFrame, cv_color_frame;
-#pragma omp parallel for num_threads(2) default(none) shared(cvDepthFrame, aligned_filtered_depth_frame, cvColorFrame, other_frame)
+#pragma omp parallel for num_threads(2) default(none) shared(cvDepthFrame, aligned_filtered_depth_frame, cv_color_frame, other_frame)
   for (int i = 0; i < 2; ++i) {
     if (i == 0) {
       cvDepthFrame = ConvertDepthFrameToMetersMat(aligned_filtered_depth_frame);
