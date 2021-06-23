@@ -139,25 +139,24 @@ int main(int, char**) try
         fpsOut << "FPS: " << fps;
         ImGui::Text("%s", fpsOut.str().c_str());
 
-        ImGui::Checkbox("Stop playback", &rcm->prop_stopped_frame);
+        ImGui::Checkbox("Stop playback", &rcm->properties.stopped_frame);
         if (ImGui::Button("Re-Calibrate")) rcm->Recalibrate();
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
-        ImGui::SliderInt("Frame Step", &rcm->prop_frame_step, 0, 7);
-        //ImGui::Text(rcm->getFrameStepLabel());
-        ImGui::SliderFloat("Z Culling Back", &rcm->prop_z_culling_back, -3.0f, 3.0f);
-        ImGui::SliderFloat("Z Culling Front", &rcm->prop_z_culling_front, -3.0f, 3.0f);
-        ImGui::SliderIntWithSteps("Gaussian Kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
-        ImGui::SliderFloat("Threshold", &rcm->prop_threshold, 0.0f, 1.0f);
-        ImGui::SliderFloat("Threshold Max", &rcm->prop_threshold_max, 0.0f, 255.0f);
-        ImGui::SliderIntWithSteps("Morph kernel", &rcm->prop_gaussian_kernel, 1, 23, 2, "%.0f");
-        auto screenshotFlag = rcm->prop_save_screenshot ? RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY_SAVE : RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY;
+        ImGui::SliderInt("Frame Step", &rcm->properties.frame_step, 0, 7);
+        ImGui::SliderFloat("Z Culling Back", &rcm->properties.z_culling_back, -3.0f, 3.0f);
+        ImGui::SliderFloat("Z Culling Front", &rcm->properties.z_culling_front, -3.0f, 3.0f);
+        ImGui::SliderIntWithSteps("Gaussian Kernel", &rcm->properties.gaussian_kernel, 1, 23, 2, "%.0f");
+        ImGui::SliderFloat("Threshold", &rcm->properties.threshold, 0.0f, 1.0f);
+        ImGui::SliderFloat("Threshold Max", &rcm->properties.threshold_max, 0.0f, 255.0f);
+        ImGui::SliderIntWithSteps("Morph kernel", &rcm->properties.gaussian_kernel, 1, 23, 2, "%.0f");
+        auto screenshotFlag = rcm->properties.save_screenshot ? RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY_SAVE : RealsenseCameraManager::SCREENSHOT_FLAGS::DISPLAY;
         if (ImGui::Button("S 0")) rcm->Screenshot(0, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 1")) rcm->Screenshot(1, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 2")) rcm->Screenshot(2, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 3")) rcm->Screenshot(3, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 4")) rcm->Screenshot(4, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
         if (ImGui::Button("S 5")) rcm->Screenshot(5, screenshotFlag, SCREENSHOT_PATH); ImGui::SameLine();
-        ImGui::Checkbox("Save", &rcm->prop_save_screenshot);
+        ImGui::Checkbox("Save", &rcm->properties.save_screenshot);
         ImGui::End();
 
         ImGui::Render();
