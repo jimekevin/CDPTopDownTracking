@@ -76,7 +76,7 @@ int main(int, char**) try
 
 		fpsLast = std::chrono::high_resolution_clock::now();
 
-      rcm->PollFrames();
+        rcm->PollFrames();
 
 		if (!rcm->ProcessFrames()) {
 			continue;

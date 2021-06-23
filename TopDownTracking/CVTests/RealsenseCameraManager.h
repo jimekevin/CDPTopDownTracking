@@ -98,6 +98,7 @@ private:
 
   rs2::spatial_filter spatial_filter_;
   rs2::temporal_filter temporal_filter_;
+  rs2::hole_filling_filter hole_filling_filter_;
 
   static constexpr int calibration_max_width_  = 600;
   static constexpr int calibration_max_height_ = 200;

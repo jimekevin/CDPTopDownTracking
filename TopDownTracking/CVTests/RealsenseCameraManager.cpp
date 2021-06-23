@@ -169,6 +169,7 @@ bool RealsenseCameraManager::ProcessFrames() {
   rs2::depth_frame aligned_filtered_depth_frame = aligned_depth_frame;
   aligned_filtered_depth_frame = spatial_filter_.process(aligned_filtered_depth_frame);
   aligned_filtered_depth_frame = temporal_filter_.process(aligned_filtered_depth_frame);
+  aligned_filtered_depth_frame = hole_filling_filter_.process(aligned_filtered_depth_frame);
 
   // =========================================
   // 3. Optional: Calibrate z threshold if needed (maybe x and y as well?)
