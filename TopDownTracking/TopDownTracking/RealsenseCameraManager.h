@@ -51,14 +51,14 @@ public:
 	static cv::Mat ConvertDepthFrameToMetersMat(const rs2::depth_frame & f);
 
 private:
-	rs2::pointcloud pc;
+	rs2::pointcloud pc_;
 	//rs2::pipeline pipe;
-    std::shared_ptr<rs2::pipeline> pipe;
-	rs2::frameset frames;
+    std::shared_ptr<rs2::pipeline> pipe_;
+	rs2::frameset frames_;
 	std::vector<Filter> filters;
 	std::vector<Task> tasks;
-	cv::Mat depthMat;
-	cv::Mat colorMat;
+	cv::Mat depth_mat_;
+	cv::Mat color_mat_;
 };
 
 #endif // REALSENSE_CAMERA_MANAGER_H

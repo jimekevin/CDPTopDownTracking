@@ -14,34 +14,34 @@ RealsenseCameraManager::~RealsenseCameraManager()
 	stop();
 }
 bool RealsenseCameraManager::init() {
-    pipe = std::make_shared<rs2::pipeline>();
+  pipe_ = std::make_shared<rs2::pipeline>();
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
     //cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
     cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
-    return (bool) pipe->start(cfg);
+    return (bool) pipe_->start(cfg);
 }
 
 bool RealsenseCameraManager::init(std::string filePath) {
-    pipe = std::make_shared<rs2::pipeline>();
+  pipe_ = std::make_shared<rs2::pipeline>();
 	rs2::config cfg;
     cfg.enable_device_from_file(filePath);
 	//cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 90);
 	//cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
 	//cfg.enable_stream(RS2_STREAM_COLOR, 960, 540, RS2_FORMAT_RGB8, 60);
-	return (bool) pipe->start(cfg);
+	return (bool) pipe_->start(cfg);
 }
 
 void RealsenseCameraManager::stop() {
-	pipe->stop();
+	pipe_->stop();
 }
 
 cv::Mat RealsenseCameraManager::GetColorFrame([[maybe_unused]] int delayMS) {
-	return colorMat;
+	return color_mat_;
 }
 
 cv::Mat RealsenseCameraManager::GetDepthFrame([[maybe_unused]] int delayMS) {
-	return depthMat;
+	return depth_mat_;
 }
 
 cv::Mat RealsenseCameraManager::GetAveragedDepthFrame(int numFramesAveraged, std::vector<ColorSpacePoint>* colorPoints) {
@@ -56,7 +56,7 @@ cv::Point3d RealsenseCameraManager::get3DFromDepthAt(double x, double y, double 
 }
 
 bool RealsenseCameraManager::PollFrames() {
-	return pipe->poll_for_frames(&frames);
+	return pipe_->poll_for_frames(&frames_);
 
 	//if (!pipe->poll_for_frames(&frames)) {
 	//	return false;
@@ -82,11 +82,11 @@ RealsenseCameraManager::RenderSet RealsenseCameraManager::ProcessFrames() {
 	//rs2::align align(align_to);
 	//auto alignedFrames = align.process(frames);
 
-	auto colorFrame = frames.get_color_frame();
-	auto depthFrame = frames.get_depth_frame();
+	auto colorFrame = frames_.get_color_frame();
+	auto depthFrame = frames_.get_depth_frame();
 
-    pc.map_to(colorFrame);
-    auto points = pc.calculate(depthFrame);
+    pc_.map_to(colorFrame);
+    auto points = pc_.calculate(depthFrame);
 
 	rs2::frame colorFiltered = colorFrame;
 	rs2::frame depthFiltered = depthFrame;

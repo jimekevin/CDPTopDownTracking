@@ -826,7 +826,7 @@ void MainGLWidget::printVersionInformation()
 
 	// Get Profile Information
 #define CASE(c) case QSurfaceFormat::c: glProfile = #c; break
-	switch (format().profile())
+	switch (format().profile_())
 	{
 		CASE(NoProfile);
 		CASE(CoreProfile);
