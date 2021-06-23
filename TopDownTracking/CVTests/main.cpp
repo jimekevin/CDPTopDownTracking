@@ -141,6 +141,7 @@ int main(int, char**) try
 
         ImGui::Checkbox("Stop playback", &rcm->properties.stopped_frame);
         if (ImGui::Button("Re-Calibrate")) rcm->Recalibrate();
+        if (ImGui::Button("Clear clusters")) rcm->ClearClusters();
         ImGui::SliderInt("Video ID", &activeRecording, 0, RECORDING::COUNT - 1);
         ImGui::SliderInt("Frame Step", &rcm->properties.frame_step, 0, 7);
         ImGui::SliderFloat("Z Culling Back", &rcm->properties.z_culling_back, -3.0f, 3.0f);

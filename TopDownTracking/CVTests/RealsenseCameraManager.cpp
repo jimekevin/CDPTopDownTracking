@@ -94,6 +94,11 @@ void RealsenseCameraManager::MultiTracker::UpdateCluster(const std::vector<cv::R
   }
 }
 
+void RealsenseCameraManager::MultiTracker::ClearClusters() {
+  clusters_.clear();
+  next_cluster_id_ = 0;
+}
+
 bool RealsenseCameraManager::Init(const std::string& bag_path)
 {
   pipe_ = std::make_shared<rs2::pipeline>();
@@ -760,6 +765,10 @@ void RealsenseCameraManager::Screenshot(int step, SCREENSHOT_FLAGS flags, const 
     cv::waitKey(0);
     cv::destroyWindow(windowName.str());
   }
+}
+
+void RealsenseCameraManager::ClearClusters() {
+  multi_tracker_.ClearClusters();
 }
 
 const char* RealsenseCameraManager::GetFrameStepLabel(int step) {

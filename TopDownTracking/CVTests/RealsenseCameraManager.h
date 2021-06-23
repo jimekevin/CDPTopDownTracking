@@ -43,6 +43,7 @@ public:
   SCANNERLIB_API void Recalibrate();
 
   SCANNERLIB_API void Screenshot(int step, SCREENSHOT_FLAGS flags, const std::string& screenshot_path);
+  SCANNERLIB_API void ClearClusters();
 
   SCANNERLIB_API rs2::video_frame GetRs2ColorFrame();
   SCANNERLIB_API rs2::depth_frame GetRs2DepthFrame();
@@ -63,6 +64,7 @@ private:
   public:
     void UpdateCluster(const std::vector<cv::RotatedRect> &rects);
     const Clusters& GetClusters();
+    void ClearClusters();
 
   private:
     void RegisterCluster(Cluster cluster);
