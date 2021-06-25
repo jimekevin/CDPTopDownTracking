@@ -70,7 +70,7 @@ int main(int, char**) try
 	{
 	    if (activeRecording != lastRecording) {
 	        rcm = std::make_unique<RealsenseCameraManager>();
-          rcm->Init(getRecording(activeRecording));
+	        rcm->Init(getRecording(activeRecording));
 	        lastRecording = activeRecording;
 	    }
 

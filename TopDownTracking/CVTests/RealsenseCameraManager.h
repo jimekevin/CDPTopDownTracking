@@ -11,8 +11,8 @@
 class RealsenseCameraManager : public IMixedCameraManager
 {
 public:
-
   typedef struct Properties {
+    bool auto_calibrate = true;
     bool stopped_frame = false;
     int frame_step = 0;
     float z_culling_back = 0.0f;
@@ -38,7 +38,6 @@ public:
 
   SCANNERLIB_API bool PollFrames();
   SCANNERLIB_API bool ProcessFrames();
-  SCANNERLIB_API void ApplyThreshold(rs2::video_frame& other_frame, rs2::depth_frame& depth_frame, unsigned char color);
 
   SCANNERLIB_API void Calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame);
   SCANNERLIB_API void Recalibrate();
@@ -61,6 +60,20 @@ private:
   } Cluster;
   typedef std::map<int, Cluster> Clusters;
 
+  typedef std::vector<cv::RotatedRect> HandBoxes;
+  typedef std::vector<cv::Point2i> Contour;
+  typedef std::vector<Contour> Contours;
+  typedef struct DebugInfo {
+    Contours contours;
+    std::vector<double> areas;
+    HandBoxes hand_boxes;
+    HandBoxes secondary_hand_boxes;
+    Contours final_contours;
+    HandBoxes final_hand_boxes;
+    cv::Mat color_frame, contour_frame, grey_mat, blur_mat, thresh_mat, morph_mat;
+    Clusters tracked_clusters;
+  } DebugInfo;
+
   class MultiTracker {
   public:
     void UpdateCluster(const std::vector<cv::RotatedRect> &rects);
@@ -76,6 +89,16 @@ private:
     Clusters clusters_;
   };
 
+  bool ProcessRs2Frames(rs2::frame& out_color_frame, rs2::frame& out_depth_frame);
+  void ThresholdRs2Frames(rs2::video_frame& color_frame, rs2::depth_frame& depth_frame);
+  void ConvertRs2FramesToCv(const rs2::video_frame& color_frame, const rs2::depth_frame& depth_frame, cv::Mat& out_cv_depth_frame, cv::Mat& out_cv_color_frame);
+  bool Detect(cv::Mat& color_frame, cv::Mat& depth_frame, HandBoxes& out_hand_boxes, DebugInfo& debug_info);
+  void Track(const HandBoxes& hand_boxes, Clusters& tracked_clusters, DebugInfo& debug_info);
+  void Draw(cv::Mat& out_color_frame, const DebugInfo& debug_info);
+
+  const int GetMinAreaSize();
+  const int GetMaxAreaSize();
+
   static const char *GetFrameStepLabel(int step);
 
   static float GetDepthScale(const rs2::device& dev);
@@ -84,8 +107,8 @@ private:
   static cv::Mat ConvertFrameToMat(const rs2::frame& f);
   static cv::Mat ConvertDepthFrameToMetersMat(const rs2::depth_frame & f);
 
-  static inline double Shoelace(const cv::Point2f& p1, const cv::Point2f& p2, const cv::Point2f& p3);
-  static inline bool PointInsideRotatedRect(const cv::Point2f& point, const cv::RotatedRect& rotated_rect);
+  inline double Shoelace(const cv::Point2f& p1, const cv::Point2f& p2, const cv::Point2f& p3);
+  inline bool PointInsideRotatedRect(const cv::Point2f& point, const cv::RotatedRect& rotated_rect);
 
   rs2::config cfg_;
   std::shared_ptr<rs2::pipeline> pipe_;
@@ -120,7 +143,6 @@ private:
   rs2::frame processed_rs_2_depth_frame_;
   cv::Mat processed_cv_color_frame_;
   cv::Mat processed_cv_depth_frame_;
-
 };
 
 #endif // REALSENSE_CAMERA_MANAGER_H

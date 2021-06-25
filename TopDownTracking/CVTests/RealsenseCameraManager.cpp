@@ -133,12 +133,9 @@ bool RealsenseCameraManager::PollFrames() {
   return true;
 }
 
-bool RealsenseCameraManager::ProcessFrames() {
 
-  // =========================================
+bool RealsenseCameraManager::ProcessRs2Frames(rs2::frame& out_color_frame, rs2::frame& out_depth_frame) {
   // 1. Align frames
-  // =========================================
-
   if (ProfileChanged(pipe_->get_active_profile().get_streams(), profile_.get_streams()))
   {
     // If the profile was changed, update the align object, and also get the new device's depth scale
@@ -159,136 +156,141 @@ bool RealsenseCameraManager::ProcessFrames() {
     return false;
   }
 
-  auto width = other_frame.get_width();
-  auto height = other_frame.get_height();
-
-  // =========================================
-  // 2. Filters (spatial then temporal) https://dev.intelrealsense.com/docs/depth-post-processing
-  // =========================================
-
+  // 2. Filters (spatial then temporal then hole filling)
+  // https://dev.intelrealsense.com/docs/depth-post-processing
   rs2::depth_frame aligned_filtered_depth_frame = aligned_depth_frame;
   aligned_filtered_depth_frame = spatial_filter_.process(aligned_filtered_depth_frame);
   aligned_filtered_depth_frame = temporal_filter_.process(aligned_filtered_depth_frame);
   aligned_filtered_depth_frame = hole_filling_filter_.process(aligned_filtered_depth_frame);
 
-  // =========================================
-  // 3. Optional: Calibrate z threshold if needed (maybe x and y as well?)
-  // =========================================
+  out_color_frame = other_frame;
+  out_depth_frame = aligned_filtered_depth_frame;
 
-  if (!is_calibrated_) {
-    Calibrate(other_frame, aligned_filtered_depth_frame);
+  return true;
+}
+
+void RealsenseCameraManager::ThresholdRs2Frames(rs2::video_frame& color_frame, rs2::depth_frame& depth_frame) {
+  auto p_depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(depth_frame.get_data()));
+  auto p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
+
+  auto width = color_frame.get_width();
+  auto height = color_frame.get_height();
+  auto other_bpp = color_frame.get_bytes_per_pixel();
+
+  auto zMax = calibrated_z_ + properties.z_culling_back;
+  auto zMin = calibrated_z_ - properties.z_culling_front;
+  zMin -= 0.25f;
+//sd#pragma omp parallel for schedule(dynamic) //Using OpenMP to try to parallelise the loop
+  for (int y = 0; y < height; y++)
+  {
+    auto depth_pixel_index = y * width;
+    for (int x = 0; x < width; x++, ++depth_pixel_index)
+    {
+      // Original depth value
+      auto z = depth_scale_ * static_cast<float>(p_depth_frame[depth_pixel_index]);
+      // Altered depth value
+      double pixels_distance = (H_z_row_[0] * x) + (H_z_row_[1] * y) + (H_z_row_[2] * z);
+
+      // Check if the depth value is invalid (<=0) or greater than the threashold
+      if (pixels_distance <= zMin || pixels_distance >= zMax)
+      {
+        // Calculate the offset in other frame's buffer to current pixel
+        auto offset = depth_pixel_index * other_bpp;
+
+        // Set pixel to "background" color (0x999999)
+        constexpr int color = 0xff;
+        std::memset(&p_other_frame[offset], color, other_bpp);
+
+        // Update z index in the depth frame
+        std::memset(&p_depth_frame[depth_pixel_index], static_cast<unsigned short>(pixels_distance), sizeof(uint16_t));
+      }
+    }
   }
+}
 
-  // =========================================
-  // 4. Threshold
-  // =========================================
-
-  const int colorWhite = 0xff;
-  ApplyThreshold(other_frame, aligned_filtered_depth_frame, colorWhite);
-
-  // =========================================
-  // 5. Convert to OpenCV
-  // =========================================
-
-  cv::Mat cvDepthFrame, cv_color_frame;
-#pragma omp parallel for num_threads(2) default(none) shared(cvDepthFrame, aligned_filtered_depth_frame, cv_color_frame, other_frame)
+void RealsenseCameraManager::ConvertRs2FramesToCv(const rs2::video_frame& color_frame, const rs2::depth_frame& depth_frame, cv::Mat& out_cv_color_frame, cv::Mat& out_cv_depth_frame) {
+#pragma omp parallel for num_threads(2) default(none) shared(out_cv_color_frame, color_frame, out_cv_depth_frame, depth_frame)
   for (int i = 0; i < 2; ++i) {
     if (i == 0) {
-      cvDepthFrame = ConvertDepthFrameToMetersMat(aligned_filtered_depth_frame);
+      out_cv_color_frame = ConvertFrameToMat(color_frame);
     }
     else {
-      cv_color_frame = ConvertFrameToMat(other_frame);
+      out_cv_depth_frame = ConvertDepthFrameToMetersMat(depth_frame);
     }
   }
+}
 
-  // =========================================
-  // 6. Contour Detection
-  // =========================================
-
+bool RealsenseCameraManager::Detect(cv::Mat& color_frame, cv::Mat& depth_frame, HandBoxes& out_hand_boxes, DebugInfo& debug_info) {
   if (prev_cv_color_frame_.cols == 0) {
-    prev_cv_color_frame_ = cv_color_frame;
-    // prevCvDepthFrame = cvDepthFrame;
+    prev_cv_color_frame_ = color_frame;
+    // prev_cv_depth_frame = depth_frame;
     return false;
   }
-  cv::Mat contour_color_frame;
-  cv::absdiff(prev_cv_color_frame_, cv_color_frame, contour_color_frame);
-  cv::bitwise_not(contour_color_frame, contour_color_frame);
 
-  cv::Mat greyMat; // Different mat since we reduce the channels from 3 to 1
-  //cv::cvtColor(contourColorFrame, greyMat, cv::COLOR_BGR2GRAY);
+  auto width = color_frame.cols;
+  auto height = color_frame.rows;
+
+  cv::Mat contour_frame;
+  cv::absdiff(prev_cv_color_frame_, color_frame, contour_frame);
+  prev_cv_color_frame_ = color_frame; // Save previous frame
+  cv::bitwise_not(contour_frame, contour_frame);
+
+  cv::Mat grey_mat; // Different mat since we reduce the channels from 3 to 1
+  //cv::cvtColor(contourColorFrame, grey_mat, cv::COLOR_BGR2GRAY);
   if (properties.frame_step == 1) {
-    cv::cvtColor(contour_color_frame, greyMat, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(contour_frame, grey_mat, cv::COLOR_BGR2GRAY);
   } else {
-    cv::cvtColor(cv_color_frame, greyMat, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(color_frame, grey_mat, cv::COLOR_BGR2GRAY);
   }
 
-  cv::Mat blurMat;
-  cv::GaussianBlur(greyMat, blurMat, cv::Size(properties.gaussian_kernel, properties.gaussian_kernel), 0);
+  cv::Mat blur_mat;
+  cv::GaussianBlur(grey_mat, blur_mat, cv::Size(properties.gaussian_kernel, properties.gaussian_kernel), 0);
 
-  cv::Mat threshMat;
-  cv::threshold(blurMat, threshMat, properties.threshold * 255.0f, properties.threshold_max, cv::THRESH_BINARY);
+  cv::Mat thresh_mat;
+  cv::threshold(blur_mat, thresh_mat, properties.threshold * 255.0f, properties.threshold_max, cv::THRESH_BINARY);
 
   // Dilation brings no performance increase
-  // cv::Mat dilateMat;
-  // cv::Mat dilateKernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3), cv::Point(-1, -1));
-  // cv::dilate(threshMat, dilateMat, dilateKernel, cv::Point(-1, -1), 3);
+  // cv::Mat dilate_mat;
+  // cv::Mat dilate_kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3), cv::Point(-1, -1));
+  // cv::dilate(thresh_mat, dilate_mat, dilate_kernel, cv::Point(-1, -1), 3);
 
   // Morph Mat is really slow on the main cdp station
-  cv::Mat morphMat = threshMat;
-  // cv::Mat morphMat;
-  // cv::Mat morphKernel = cv::getStructuringElement(cv::MorphShapes::MORPH_RECT, cv::Size(properties.morph_kernel, properties.morph_kernel), cv::Point(-1, -1));
-  // cv::morphologyEx(threshMat, morphMat, cv::MorphTypes::MORPH_OPEN, morphKernel);
-  // cv::morphologyEx(morphMat, morphMat, cv::MorphTypes::MORPH_CLOSE, morphKernel);
+  cv::Mat morph_mat = thresh_mat;
+  // cv::Mat morph_mat;
+  // cv::Mat morph_kernel = cv::getStructuringElement(cv::MorphShapes::MORPH_RECT, cv::Size(properties.morph_kernel, properties.morph_kernel), cv::Point(-1, -1));
+  // cv::morphologyEx(thresh_mat, morph_mat, cv::MorphTypes::MORPH_OPEN, morph_kernel);
+  // cv::morphologyEx(morph_mat, morph_mat, cv::MorphTypes::MORPH_CLOSE, morph_kernel);
 
   // Cut out border so findContours does not match and merges it with the actual shapes
-  cv::rectangle(morphMat, cv::Point(0, 0), cv::Point (width, height), cv::Scalar(255, 255, 255), 50);
+  cv::rectangle(morph_mat, cv::Point(0, 0), cv::Point (width, height), cv::Scalar(255, 255, 255), 50);
 
-  std::vector<std::vector<cv::Point>> contours;
   std::vector<std::vector<cv::Point>> hull;
-  std::vector<double> areas;
   std::vector<double> centroids;
   std::vector<std::tuple<int, std::vector<cv::Point2f>>> bounding_boxes;
   std::vector<cv::Vec4i> hierarchy;
-  std::vector<cv::Scalar> colors = {
-      cv::Scalar(255.0f, 0.0f, 0.0f),
-      cv::Scalar(0.0f, 255.0f, 0.0f),
-      cv::Scalar(0.0f, 0.0f, 255.0f),
-      cv::Scalar(255.0f, 255.0f, 0.0f),
-      cv::Scalar(255.0f, 0.0f, 255.0f),
-      cv::Scalar(0.0f, 255.0f, 255.0f),
-      cv::Scalar(0.5f, 255.0f, 0.0f),
-      cv::Scalar(0.5f, 0.0f, 255.0f),
-      cv::Scalar(255.0f, 0.5f, 0.0f),
-      cv::Scalar(255.0f, 0.0f, 0.5f),
-  };
-  cv::findContours(morphMat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+  Contours contours;
+  std::vector<double> areas;
+  cv::findContours(morph_mat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
   hull.resize(contours.size());
-  const int kMaxAreaSize = calibration_max_width_ * calibration_max_height_;
-  const int kMinAreaSize = properties.min_area_size;
   areas.clear();
   for (int i = 0; i < contours.size(); i++) {
     cv::convexHull(contours[i], hull[i]);
     auto area = cv::contourArea(hull[i]);
     areas.push_back(area);
 
-    if (area > kMaxAreaSize || area < kMinAreaSize) {
+    if (area > GetMaxAreaSize() || area < GetMinAreaSize()) {
       continue;
     }
 
-    auto minRect = cv::minAreaRect(contours[i]);
+    auto min_rect = cv::minAreaRect(contours[i]);
     std::vector<cv::Point2f> box(4);
-    minRect.points(box.data());
+    min_rect.points(box.data());
     bounding_boxes.emplace_back(std::make_tuple(i, box));
   }
 
-  // =========================================
-  // 7. Calculate approximate hand positions
-  // =========================================
+  // Calculate approximate hand positions
 
-  std::vector<cv::RotatedRect> hand_boxes;
-  std::vector<cv::RotatedRect> secondary_hand_boxes;
-  std::vector<std::vector<cv::Point2i>> final_contours{bounding_boxes.size()};
-  std::vector<cv::RotatedRect> final_hand_boxes{bounding_boxes.size()};
+  debug_info.final_contours.resize(bounding_boxes.size());
   for (int i = 0; i < bounding_boxes.size(); i++) {
     auto bindex = std::get<0>(bounding_boxes[i]);
     auto &box = std::get<1>(bounding_boxes[i]);
@@ -340,130 +342,180 @@ bool RealsenseCameraManager::ProcessFrames() {
     auto rect2 = std::get<0>(rects[1]);
     cv::RotatedRect rotatedRect2(rect2[0], rect2[1], rect2[2]);
     cv::RotatedRect activeRect;
+
     if (score1 < score2) {
-      hand_boxes.emplace_back(rotatedRect1);
-      secondary_hand_boxes.emplace_back(rotatedRect2);
+      debug_info.hand_boxes.emplace_back(rotatedRect1);
+      debug_info.secondary_hand_boxes.emplace_back(rotatedRect2);
       activeRect = rotatedRect1;
     } else {
-      hand_boxes.emplace_back(rotatedRect2);
-      secondary_hand_boxes.emplace_back(rotatedRect1);
+      debug_info.hand_boxes.emplace_back(rotatedRect2);
+      debug_info.secondary_hand_boxes.emplace_back(rotatedRect1);
       activeRect = rotatedRect2;
     }
 
+    Contour final_contours;
     for (const auto& c : contours[bindex]) {
       if (PointInsideRotatedRect(c, activeRect)) {
-        final_contours[i].emplace_back(c);
+        final_contours.push_back(c);
+        debug_info.final_contours[i].push_back(c);
       }
     }
 
-    if (!final_contours[i].empty()) {
-      auto minRect = cv::minAreaRect(final_contours[i]);
-      final_hand_boxes.emplace_back(minRect);
+    if (!final_contours.empty()) {
+      auto minRect = cv::minAreaRect(final_contours);
+      out_hand_boxes.emplace_back(minRect);
     }
   }
 
-  // =========================================
-  // 8. Segmentation Localization
-  // =========================================
+  debug_info.contours = contours;
+  debug_info.areas = areas;
+  debug_info.final_hand_boxes = out_hand_boxes;
+  debug_info.color_frame = color_frame;
+  debug_info.contour_frame = contour_frame;
+  debug_info.grey_mat = grey_mat;
+  debug_info.blur_mat = blur_mat;
+  debug_info.thresh_mat = thresh_mat;
+  debug_info.morph_mat = morph_mat;
 
-  // Update Tracker
-  //multiTracker.updateClusters(boundingBoxes);
+  return true;
+}
+
+void RealsenseCameraManager::Track(const HandBoxes& hand_boxes, Clusters& tracked_clusters, DebugInfo& debug_info) {
   multi_tracker_.UpdateCluster(hand_boxes);
-  auto trackedClusters = multi_tracker_.GetClusters();
+  tracked_clusters = multi_tracker_.GetClusters();
+  debug_info.tracked_clusters = tracked_clusters;
+}
 
-  // =========================================
-  // 9. Drawing
-  // =========================================
+void RealsenseCameraManager::Draw(cv::Mat& out_color_frame, const DebugInfo& debug_info) {
+  out_color_frame = debug_info.color_frame.clone();
+
+  const std::vector<cv::Scalar> colors = {
+      cv::Scalar(255.0f, 0.0f, 0.0f),
+      cv::Scalar(0.0f, 255.0f, 0.0f),
+      cv::Scalar(0.0f, 0.0f, 255.0f),
+      cv::Scalar(255.0f, 255.0f, 0.0f),
+      cv::Scalar(255.0f, 0.0f, 255.0f),
+      cv::Scalar(0.0f, 255.0f, 255.0f),
+      cv::Scalar(0.5f, 255.0f, 0.0f),
+      cv::Scalar(0.5f, 0.0f, 255.0f),
+      cv::Scalar(255.0f, 0.5f, 0.0f),
+      cv::Scalar(255.0f, 0.0f, 0.5f),
+  };
 
   // Draw Contours
-  for (int i = 0; i < contours.size(); i++) {
-    if (areas[i] < kMaxAreaSize && areas[i] > kMinAreaSize) {
-      //cv::drawContours(cvColorFrame, contours, i, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, hierarchy, 0);
+  for (int i = 0; i < debug_info.contours.size(); i++) {
+    if (debug_info.areas[i] < GetMaxAreaSize() && debug_info.areas[i] > GetMinAreaSize()) {
+      //cv::drawContours(out_frame, debug_info.contours, i, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, hierarchy, 0);
     }
   }
 
   // Draw tracked objects
-  for (const auto& [clusterId, cluster] : trackedClusters) {
+  for (const auto& [clusterId, cluster] : debug_info.tracked_clusters) {
     std::vector<cv::Point2f> points(4);
     cluster.rect.points(points.data());
     std::vector<std::vector<cv::Point2i>> polylines{ { points[0], points[1], points[2], points[3] } };
-    //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, 0);
+    //cv::polylines(out_color_frame, polylines, true, cv::Scalar(255.0f, 0.0f, 0.0f), 2, 8, 0);
     std::stringstream label;
     label << "Label: " << clusterId;
     auto color = colors[clusterId % colors.size()];
-    cv::putText(cv_color_frame, label.str(), cluster.rect.boundingRect().tl(), cv::FONT_HERSHEY_SIMPLEX, 1, color);
+    cv::putText(out_color_frame, label.str(), cluster.rect.boundingRect().tl(), cv::FONT_HERSHEY_SIMPLEX, 1, color);
   }
 
   // Draw hand boxes
-  for (const auto& handBox : hand_boxes) {
+  for (const auto& handBox : debug_info.hand_boxes) {
     std::vector<cv::Point2f> points(4);
     handBox.points(points.data());
     std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
-    //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(0.0f, 255.0f, 255.0f), 2, 8, 0);
+    //cv::polylines(out_color_frame, polylines, true, cv::Scalar(0.0f, 255.0f, 255.0f), 2, 8, 0);
   }
-  for (const auto& handBox : secondary_hand_boxes) {
+  for (const auto& handBox : debug_info.secondary_hand_boxes) {
     std::vector<cv::Point2f> points(4);
     handBox.points(points.data());
     std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
-    //cv::polylines(cvColorFrame, polylines, true, cv::Scalar(255.0f, 0.0f, 255.0f), 2, 8, 0);
+    //cv::polylines(out_color_frame, polylines, true, cv::Scalar(255.0f, 0.0f, 255.0f), 2, 8, 0);
   }
 
   // Draw final contours
   // std::cout << "finalContours: " << finalContours.size() << std::endl;
-  for (const auto& finalContour : final_contours) {
-    cv::polylines(cv_color_frame, finalContour, true, cv::Scalar(0.0f, 255.0f, 0.0f), 2, 8, 0);
+  for (const auto& finalContour : debug_info.final_contours) {
+    cv::polylines(out_color_frame, finalContour, true, cv::Scalar(0.0f, 255.0f, 0.0f), 2, 8, 0);
   }
 
   // Draw final handboxes
-  for (const auto& finalHandBox : final_hand_boxes) {
+  for (const auto& finalHandBox : debug_info.final_hand_boxes) {
     std::vector<cv::Point2f> points(4);
     finalHandBox.points(points.data());
     std::vector<std::vector<cv::Point2i>> polylines{{points[0], points[1], points[2], points[3]}};
-    cv::polylines(cv_color_frame, polylines, true, cv::Scalar(255.0f, 0.0f, 123.0f), 2, 8, 0);
+    cv::polylines(out_color_frame, polylines, true, cv::Scalar(255.0f, 0.0f, 123.0f), 2, 8, 0);
   }
 
   // Draw calibration window
+  auto width = debug_info.color_frame.cols;
+  auto height = debug_info.color_frame.rows;
   auto rw1 = (width / 2) - (calibration_max_width_ / 2);
   auto rw2 = (width / 2) + (calibration_max_width_ / 2);
   auto rh1 = (height / 2) - (calibration_max_height_ / 2);
   auto rh2 = (height / 2) + (calibration_max_height_ / 2);
-  cv::rectangle(cv_color_frame, cv::Rect(cv::Point(rw1, rh1), cv::Size(calibration_max_width_, calibration_max_height_)), cv::Scalar(127, 0, 255));
+  cv::rectangle(out_color_frame, cv::Rect(cv::Point(rw1, rh1), cv::Size(calibration_max_width_, calibration_max_height_)), cv::Scalar(127, 0, 255));
+}
+
+bool RealsenseCameraManager::ProcessFrames() {
+  rs2::frame out_rs2_color_frame, out_depth_frame;
+  if (!ProcessRs2Frames(out_rs2_color_frame, out_depth_frame)) {
+    return false;
+  }
+  rs2::video_frame other_frame = out_rs2_color_frame.as<rs2::video_frame>();
+  rs2::depth_frame aligned_filtered_depth_frame = out_depth_frame.as<rs2::depth_frame>();
+
+  if (properties.auto_calibrate && !is_calibrated_) {
+    Calibrate(other_frame, aligned_filtered_depth_frame);
+  }
+
+  ThresholdRs2Frames(other_frame, aligned_filtered_depth_frame);
+
+  cv::Mat cv_color_frame, cv_depth_frame;
+  ConvertRs2FramesToCv(other_frame, aligned_filtered_depth_frame, cv_color_frame, cv_depth_frame);
+
+  DebugInfo debug_info;
+
+  HandBoxes hand_boxes;
+  if (!Detect(cv_color_frame, cv_depth_frame, hand_boxes, debug_info)) {
+    return false;
+  }
+
+  // Update Tracker
+  Clusters tracked_clusters;
+  Track(hand_boxes, tracked_clusters, debug_info);
+
+  cv::Mat out_final_color_frame;
+  Draw(out_final_color_frame, debug_info);
 
   // =========================================
   // 10. Finalize
   // =========================================
 
-  prev_cv_color_frame_ = cv_color_frame;
-  // prevCvDepthFrame = cvDepthFrame;
-
-  //processedCvColorFrame = cvColorFrame;
-  //processedCvColorFrame = contourColorFrame;
-  //processedCvColorFrame = greyMat;
-  //processedCvColorFrame = blurMat;
-  //processedCvColorFrame = threshMat;
-  //processedCvColorFrame = dilateMat;
-  //processedCvColorFrame = morphMat;
   switch (properties.frame_step) {
     default:
-    case 0: processed_cv_color_frame_ = cv_color_frame; break;
-    case 1: processed_cv_color_frame_ = contour_color_frame; break;
-    case 2: processed_cv_color_frame_ = greyMat; break;
-    case 3: processed_cv_color_frame_ = blurMat; break;
-    case 4: processed_cv_color_frame_ = threshMat; break;
-    case 5: processed_cv_color_frame_ = morphMat; break;
+    case 0: processed_cv_color_frame_ = out_final_color_frame; break;
+    case 1: processed_cv_color_frame_ = debug_info.contour_frame; break;
+    case 2: processed_cv_color_frame_ = debug_info.grey_mat; break;
+    case 3: processed_cv_color_frame_ = debug_info.blur_mat; break;
+    case 4: processed_cv_color_frame_ = debug_info.thresh_mat; break;
+    case 5: processed_cv_color_frame_ = debug_info.morph_mat; break;
   }
-  processed_cv_depth_frame_ = cvDepthFrame;
+  processed_cv_depth_frame_ = cv_depth_frame;
 
   processed_rs_2_color_frame_ = other_frame;
   processed_rs_2_depth_frame_ = aligned_filtered_depth_frame;
 
   // 10. Save frames in mats in case we want to display/save them later
-  frame_cv_color_frame_ = cv_color_frame;
-  frame_contour_color_frame_ = contour_color_frame;
-  frame_grey_mat_ = greyMat;
-  frame_blur_mat_ = blurMat;
-  frame_thresh_mat_ = threshMat;
-  frame_morph_mat_ = morphMat;
+  frame_cv_color_frame_ = debug_info.color_frame;
+  frame_contour_color_frame_ = debug_info.contour_frame;
+  frame_grey_mat_ = debug_info.grey_mat;
+  frame_blur_mat_ = debug_info.blur_mat;
+  frame_thresh_mat_ = debug_info.thresh_mat;
+  frame_morph_mat_ = debug_info.morph_mat;
+
   return true;
 }
 
@@ -574,51 +626,20 @@ void RealsenseCameraManager::Recalibrate() {
   is_calibrated_ = false;
 }
 
-void RealsenseCameraManager::ApplyThreshold(rs2::video_frame& other_frame, rs2::depth_frame& depth_frame, unsigned char color)
-{
-  auto p_depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(depth_frame.get_data()));
-  auto p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(other_frame.get_data()));
-
-  auto width = other_frame.get_width();
-  auto height = other_frame.get_height();
-  auto other_bpp = other_frame.get_bytes_per_pixel();
-
-  auto zMax = calibrated_z_ + properties.z_culling_back;
-  auto zMin = calibrated_z_ - properties.z_culling_front;
-  zMin -= 0.25f;
-//sd#pragma omp parallel for schedule(dynamic) //Using OpenMP to try to parallelise the loop
-  for (int y = 0; y < height; y++)
-  {
-    auto depth_pixel_index = y * width;
-    for (int x = 0; x < width; x++, ++depth_pixel_index)
-    {
-      // Original depth value
-      auto z = depth_scale_ * static_cast<float>(p_depth_frame[depth_pixel_index]);
-      // Altered depth value
-      double pixels_distance = (H_z_row_[0] * x) + (H_z_row_[1] * y) + (H_z_row_[2] * z);
-
-      // Check if the depth value is invalid (<=0) or greater than the threashold
-      if (pixels_distance <= zMin || pixels_distance >= zMax)
-      {
-        // Calculate the offset in other frame's buffer to current pixel
-        auto offset = depth_pixel_index * other_bpp;
-
-        // Set pixel to "background" color (0x999999)
-        std::memset(&p_other_frame[offset], color, other_bpp);
-
-        // Update z index in the depth frame
-        std::memset(&p_depth_frame[depth_pixel_index], static_cast<unsigned short>(pixels_distance), sizeof(uint16_t));
-      }
-    }
-  }
-}
-
 rs2::video_frame RealsenseCameraManager::GetRs2ColorFrame() {
   return processed_rs_2_color_frame_.as<rs2::video_frame>();
 }
 
 rs2::depth_frame RealsenseCameraManager::GetRs2DepthFrame() {
   return processed_rs_2_depth_frame_.as<rs2::depth_frame>();
+}
+
+const int RealsenseCameraManager::GetMinAreaSize() {
+  return properties.min_area_size;
+}
+
+const int RealsenseCameraManager::GetMaxAreaSize() {
+  return calibration_max_width_ * calibration_max_height_;
 }
 
 float RealsenseCameraManager::GetDepthScale(const rs2::device& dev)
