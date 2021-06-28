@@ -39,7 +39,7 @@ public:
   SCANNERLIB_API bool PollFrames();
   SCANNERLIB_API bool ProcessFrames();
 
-  SCANNERLIB_API void Calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame);
+  SCANNERLIB_API bool Calibrate(const rs2::depth_frame& depth_frame);
   SCANNERLIB_API void Recalibrate();
 
   SCANNERLIB_API void Screenshot(int step, SCREENSHOT_FLAGS flags, const std::string& screenshot_path);
@@ -124,8 +124,9 @@ private:
   rs2::temporal_filter temporal_filter_;
   rs2::hole_filling_filter hole_filling_filter_;
 
-  static constexpr int calibration_max_width_  = 600;
-  static constexpr int calibration_max_height_ = 200;
+  static constexpr auto calibration_rejection_threshold_ = 0.0001;
+  static constexpr auto calibration_max_width_  = 600;
+  static constexpr auto calibration_max_height_ = 200;
   bool is_calibrated_ = false;
   double H_z_row_[4] = {0, 0, 0, 0 };
   double calibrated_z_ = 10.0f;

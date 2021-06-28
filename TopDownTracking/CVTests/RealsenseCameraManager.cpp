@@ -468,7 +468,9 @@ bool RealsenseCameraManager::ProcessFrames() {
   rs2::depth_frame aligned_filtered_depth_frame = out_depth_frame.as<rs2::depth_frame>();
 
   if (properties.auto_calibrate && !is_calibrated_) {
-    Calibrate(other_frame, aligned_filtered_depth_frame);
+    if (!Calibrate(aligned_filtered_depth_frame)) {
+      return false;
+    }
   }
 
   ThresholdRs2Frames(other_frame, aligned_filtered_depth_frame);
@@ -527,7 +529,120 @@ cv::Mat RealsenseCameraManager::GetCvDepthFrame() {
   return processed_cv_depth_frame_;
 }
 
-void RealsenseCameraManager::Calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {
+bool RealsenseCameraManager::Calibrate(const rs2::depth_frame& depth_frame) {
+  auto p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
+
+  int width = depth_frame.get_width();
+  int height = depth_frame.get_height();
+
+  // Save random pixel distances to calculate the homography plane afterwards
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  auto rw1 = (width / 2) - (calibration_max_width_ / 2);
+  auto rw2 = (width / 2) + (calibration_max_width_ / 2);
+  auto rh1 = (height / 2) - (calibration_max_height_ / 2);
+  auto rh2 = (height / 2) + (calibration_max_height_ / 2);
+  std::uniform_int_distribution<> distrw(rw1, rw2);
+  std::uniform_int_distribution<> distrh(rh1, rh2);
+  constexpr auto sample_count = 3;
+  auto A1_samples = cv::Mat(sample_count, 3, CV_64F);
+  auto b1_samples = cv::Mat(sample_count, 1, CV_64F);
+  auto A2_samples = cv::Mat(sample_count, 3, CV_64F);
+  auto b2_samples = cv::Mat(sample_count, 1, CV_64F);
+
+  A1_samples.at<double>(0, 0) = static_cast<double>(rw1);
+  A1_samples.at<double>(0, 1) = static_cast<double>(rh1);
+  A1_samples.at<double>(0, 2) = 1.0f;
+  b1_samples.at<double>(0) = depth_scale_ * static_cast<float>(p_depth_frame[rw1 + (rh1 * width)]);
+  A2_samples.at<double>(0, 0) = static_cast<double>(rw1);
+  A2_samples.at<double>(0, 1) = static_cast<double>(rh1);
+  A2_samples.at<double>(0, 2) = 1.0f;
+  b2_samples.at<double>(0) = depth_scale_ * static_cast<float>(p_depth_frame[rw1 + (rh1 * width)]);
+
+  A1_samples.at<double>(1, 0) = static_cast<double>(rw2);
+  A1_samples.at<double>(1, 1) = static_cast<double>(rh1);
+  A1_samples.at<double>(1, 2) = 1.0f;
+  b1_samples.at<double>(1) = depth_scale_ * static_cast<float>(p_depth_frame[rw2 + (rh1 * width)]);
+  A2_samples.at<double>(1, 0) = static_cast<double>(rw2);
+  A2_samples.at<double>(1, 1) = static_cast<double>(rh1);
+  A2_samples.at<double>(1, 2) = 1.0f;
+  b2_samples.at<double>(1) = depth_scale_ * static_cast<float>(p_depth_frame[rw2 + (rh1 * width)]);
+
+  A1_samples.at<double>(2, 0) = static_cast<double>(rw2);
+  A1_samples.at<double>(2, 1) = static_cast<double>(rh2);
+  A1_samples.at<double>(2, 2) = 1.0f;
+  b1_samples.at<double>(2) = depth_scale_ * static_cast<float>(p_depth_frame[rw2 + (rh2 * width)]);
+
+  A2_samples.at<double>(2, 0) = static_cast<double>(rw1);
+  A2_samples.at<double>(2, 1) = static_cast<double>(rh2);
+  A2_samples.at<double>(2, 2) = 1.0f;
+  b2_samples.at<double>(2) = depth_scale_ * static_cast<float>(p_depth_frame[rw1 + (rh2 * width)]);
+
+  // std::cout << "Calibration: A1_samples=" << A1_samples << "\n";
+  // std::cout << "Calibration: b1_samples=" << b1_samples << "\n";
+  // std::cout << "Calibration: A2_samples=" << A2_samples << "\n";
+  // std::cout << "Calibration: b2_samples=" << b2_samples << "\n";
+
+  // Calculate fitted plane
+  cv::Mat fitted_plane, fitted_plane_correction;
+  cv::solve(A1_samples, b1_samples, fitted_plane, cv::DECOMP_SVD);
+  cv::solve(A2_samples, b2_samples, fitted_plane_correction, cv::DECOMP_SVD);
+  // std::cout << "Calibration: fitted_plane=" << fitted_plane << "\n";
+  // std::cout << "Calibration: fitted_plane_correction=" << fitted_plane_correction << "\n";
+
+  auto fitted_length = cv::norm(fitted_plane.cross(fitted_plane_correction));
+  auto rejected = fitted_length > calibration_rejection_threshold_;
+  std::cout << "Calibration: fitted_length=" << fitted_length << " (" << (rejected ? "REJECTED" : "ACCEPTED") << ")\n";
+  if (rejected) {
+    return false;
+  }
+
+  // Define Z = a*X + b*Y + c
+  auto project = [&](double x, double y) {
+    auto a = fitted_plane.at<double>(0), b = fitted_plane.at<double>(1), c = fitted_plane.at<double>(2);
+    return (a * x) + (b * y) + c;
+  };
+
+  // Get some samples (3 should be enough but the more the better I guess)
+  const int maxHomographySamples = 4;
+  double from_data[maxHomographySamples][3] = {
+      { 100.0f, 100.0f, project(100.0f, 100.0f) },
+      { -100.0f, 100.0f, project(-100.0f, 100.0f) },
+      { 100.0f, -100.0f, project(100.0f, -100.0f) },
+      { -100.0f, -100.0f, project(-100.0f, -100.0f) }
+  };
+  const auto from = cv::Mat(maxHomographySamples, 3, CV_64F, &from_data);
+  double to_data[maxHomographySamples][3] = {
+      { 100.0f, 100.0f, 0.0f },
+      { -100.0f, 100.0f, 0.0f },
+      { 100.0f, -100.0f, 0.0f },
+      { -100.0f, -100.0f, 0.0f }
+  };
+  const auto to = cv::Mat(maxHomographySamples, 3, CV_64F, &to_data);
+  // std::cout << "Calibration: from=" << from << "\n";
+  //std::cout << "Calibration: to=" << to << "\n";
+  auto H = cv::findHomography(from, to);
+  //std::cout << "Calibration: H=" << H << " (" << H.rows << "," << H.cols << ")\n";
+  H_z_row_[0] = H.at<double>(2, 0);
+  H_z_row_[1] = H.at<double>(2, 1);
+  H_z_row_[2] = H.at<double>(2, 2);
+  // std::cout << "Calibration: H_z_row_=[" << H_z_row_[0] << "," << H_z_row_[1] << "," << H_z_row_[2] << "\n"; //," << H_zrow[3] << "]\n";
+
+  // Get the center point of the new plane and add some small value. This is the threshold, everything
+  // that is below that, i.e. under the table will be ignored
+  int centerX = width / 2;
+  int centerY = height / 2;
+  auto centerZ = depth_scale_ * static_cast<float>(p_depth_frame[centerX + (centerY * width)]);
+  //std::cout << "Calibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
+  calibrated_z_ = (H_z_row_[0] * centerX) + (H_z_row_[1] * centerY) + (H_z_row_[2] * centerZ);
+  calibrated_z_ -= 0.05;
+  // std::cout << "Calibration: calibrated_z_=" << calibrated_z_ << "\n";
+
+  is_calibrated_ = true;
+  return true;
+}
+
+/*void RealsenseCameraManager::Calibrate(rs2::video_frame& other_frame, const rs2::depth_frame& depth_frame) {
   auto p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
   auto p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(other_frame.get_data()));
 
@@ -570,7 +685,7 @@ void RealsenseCameraManager::Calibrate(rs2::video_frame& other_frame, const rs2:
   A_samples.at<double>(3, 2) = 1.0f;
   b_samples.at<double>(3) = depth_scale_ * static_cast<float>(p_depth_frame[rw1 + (rh2 * width)]);
 
-  std::cout << "Calibration: A_samples=" << A_samples << "\n";
+  //std::cout << "Calibration: A_samples=" << A_samples << "\n";
   std::cout << "Calibration: b_samples=" << b_samples << "\n";
 
   // Calculate fitted plane
@@ -601,9 +716,9 @@ void RealsenseCameraManager::Calibrate(rs2::video_frame& other_frame, const rs2:
   };
   const auto to = cv::Mat(maxHomographySamples, 3, CV_64F, &to_data);
   std::cout << "Calibration: from=" << from << "\n";
-  std::cout << "Calibration: to=" << to << "\n";
+  //std::cout << "Calibration: to=" << to << "\n";
   auto H = cv::findHomography(from, to);
-  std::cout << "Calibration: H=" << H << " (" << H.rows << "," << H.cols << ")\n";
+  //std::cout << "Calibration: H=" << H << " (" << H.rows << "," << H.cols << ")\n";
   H_z_row_[0] = H.at<double>(2, 0);
   H_z_row_[1] = H.at<double>(2, 1);
   H_z_row_[2] = H.at<double>(2, 2);
@@ -614,13 +729,13 @@ void RealsenseCameraManager::Calibrate(rs2::video_frame& other_frame, const rs2:
   int centerX = width / 2;
   int centerY = height / 2;
   auto centerZ = depth_scale_ * static_cast<float>(p_depth_frame[centerX + (centerY * width)]);
-  std::cout << "Calibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
+  //std::cout << "Calibration: center=[" << centerX << "," << centerY << "," << centerZ << "]\n";
   calibrated_z_ = (H_z_row_[0] * centerX) + (H_z_row_[1] * centerY) + (H_z_row_[2] * centerZ);
   calibrated_z_ -= 0.05;
   std::cout << "Calibration: calibrated_z_=" << calibrated_z_ << "\n";
 
   is_calibrated_ = true;
-}
+}*/
 
 void RealsenseCameraManager::Recalibrate() {
   is_calibrated_ = false;
